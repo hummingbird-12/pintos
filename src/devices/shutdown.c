@@ -101,6 +101,8 @@ shutdown_power_off (void)
 
   /* This is a special power-off sequence supported by Bochs and
      QEMU, but not by physical hardware. */
+  outw(0x604, 0x0 | 0x2000);
+
   for (p = s; *p != '\0'; p++)
     outb (0x8900, *p);
 
