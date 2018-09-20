@@ -161,6 +161,13 @@ void list_insert_ordered (struct list *, struct list_elem *,
 void list_unique (struct list *, struct list *duplicates,
                   list_less_func *, void *aux);
 
+
+/* Function for project 0-2 */
+void list_swap(struct list_elem *a, struct list_elem *b);
+void list_suffle(struct list *list);
+
+
+
 /* Max and min. */
 struct list_elem *list_max (struct list *, list_less_func *, void *aux);
 struct list_elem *list_min (struct list *, list_less_func *, void *aux);
