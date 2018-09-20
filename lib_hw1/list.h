@@ -85,7 +85,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-
+#include <stdlib.h> //for rand
+#include <time.h> //for srand
 /* List element. */
 struct list_elem 
   {
