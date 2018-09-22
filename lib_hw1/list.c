@@ -1,5 +1,7 @@
 #include "list.h"
 #include <assert.h>	// Instead of	#include "../debug.h"
+#include <stdlib.h>
+#include <time.h>
 #define ASSERT(CONDITION) assert(CONDITION)	// patched for proj0-2
 
 /* Our doubly linked lists have two header elements: the "head"
@@ -343,6 +345,53 @@ list_reverse (struct list *list)
       swap (&list->head.next, &list->tail.prev);
       swap (&list->head.next->prev, &list->tail.prev->next);
     }
+}
+
+void list_swap (struct list_elem *a, struct list_elem *b) {
+    struct list_elem *aPrev = a->prev;
+    struct list_elem *aNext = a->next;
+    struct list_elem *bPrev = b->prev;
+    struct list_elem *bNext = b->next;
+    struct list_elem temp = *a;
+
+    if(bNext == a) {
+        struct list_elem *tmp = a;
+        a = b;
+        b = tmp;
+    }
+
+    if(aNext == b) {
+        aPrev->next = b;
+        b->prev = aPrev;
+        b->next = a;
+
+        a->prev = b;
+        a->next = bNext;
+        bNext->prev = a;
+    }
+    else {
+        *a = *b;
+        bPrev->next = a;
+        bNext->prev = a;
+
+        *b = temp;
+        aPrev->next = b;
+        aNext->prev = b;
+    }
+}
+
+void list_shuffle (struct list *list) {
+    int i, j;
+    size_t size = list_size(list);
+    struct list_elem *it1, *it2;
+
+    srand(time(NULL));
+
+    for(i = 0; i < size; i++)
+        for(it1 = list_begin(list); it1->next != list_end(list); it1 = list_next(it1))
+            for(it2 = list_next(it1); it2 != list_end(list); it2 = list_next(it2))
+                if(rand() % 2)
+                    list_swap(it1, it2);
 }
 
 /* Returns true only if the list elements A through B (exclusive)

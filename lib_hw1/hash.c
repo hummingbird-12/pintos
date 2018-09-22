@@ -302,6 +302,13 @@ hash_int (int i)
 {
   return hash_bytes (&i, sizeof i);
 }
+
+unsigned hash_int_2 (int i) {
+	i = ((i >> 16) ^ i) * 0x45d9f3b;
+    i = ((i >> 16) ^ i) * 0x45d9f3b;
+    i = (i >> 16) ^ i;
+    return i;
+}
 
 /* Returns the bucket in H that E belongs in. */
 static struct list *

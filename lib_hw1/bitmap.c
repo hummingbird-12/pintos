@@ -142,6 +142,20 @@ bitmap_size (const struct bitmap *b)
 {
   return b->bit_cnt;
 }
+
+struct bitmap *bitmap_expand (struct bitmap *bitmap, int size) {
+    if (bitmap != NULL) {
+        bitmap->bit_cnt += size;
+        bitmap->bits = realloc (bitmap->bits, byte_cnt (bitmap->bit_cnt));
+        if (bitmap->bits != NULL || bitmap->bit_cnt == 0) {
+            bitmap_set_all (bitmap, false);
+            return bitmap;
+        }
+        free (bitmap);
+    }
+    return NULL;
+}
+
 
 /* Setting and testing single bits. */
 
