@@ -6,8 +6,13 @@
 #include "list.h"
 //#include "round.h"
 
+typedef struct {
+    struct list_elem elem;
+    int data;
+} LIST_ITEM;
+
 void *listFunc[] = {
-    &list_init,
+    &list_init, NULL,
     &list_insert, &list_splice, &list_push_front, &list_push_back,
     &list_remove, &list_pop_front, &list_pop_back, &list_front, &list_back,
     &list_size, &list_empty,
@@ -15,14 +20,17 @@ void *listFunc[] = {
     &list_max, &list_min,
     &list_swap, &list_shuffle
 };
-struct list listArray[MAX_LIST];
-char listName[MAX_LIST][INPUT_SIZE];
+struct LIST_ARRAY {
+    struct list* listLink;
+    char listName[INPUT_SIZE];
+} listArray[MAX_LIST];
 int listCount;
 
 int main() {
     char str[INPUT_SIZE];
-    listCount = 0;
 
+    initializer();
+    
     while(true) {
         memset(str, '\0', INPUT_SIZE);
         fgets(str, sizeof(str), stdin);
@@ -31,48 +39,177 @@ int main() {
     return 0;
 }
 
+void initializer() {
+    int i;
+
+    listCount = 0;
+    for(i = 0; i < MAX_LIST; i++) {
+        listArray[i].listLink = NULL;
+        memset(listArray[i].listName, INPUT_SIZE, '\0');
+    }
+}
+
+int findTargetIndex(CMD_TYPE type, char *name) {
+    int index;
+    switch(type) {
+        case LIST:
+            for(index = 0; index < MAX_LIST; index++)
+                if(listArray[index].listLink && !strcmp(listArray[index].listName, name))
+                    return index;
+            break;
+        case HASHTABLE:
+            break;
+        case BITMAP:
+            break;
+        default:
+            break;
+    }
+    return -1;
+}
+
 void inputParser(char* input) {
-    char delim[] = " _\n";
-    char* cmd;
+    char delim[] = " \n";
+    char tok[20][INPUT_SIZE] = { '\0' };
+    int i = 0;
     bool createFlag = false;
 
     assert(input != NULL);
 
-    cmd = strtok(input, delim);
-    assert(cmd != NULL);
+    strcpy(tok[i], strtok(input, delim));
+    while(tok[i][0]) {
+        char *tmp = strtok(NULL, delim);
+        i++;
+        if(tmp)
+            strcpy(tok[i], tmp);
+    }
 
-    if(!strcmp(cmd, "create")) {
-        cmd = strtok(NULL, delim);
-        assert(cmd != NULL);
+    if(!strcmp(tok[0], "create")) {
+        assert(tok[1][0] != '\0' && tok[2][0] != '\0');
         createFlag = true;
     }
 
-    if(!strcmp(cmd, "list"))
-        listCommand(strtok(NULL, delim), createFlag);
+    if(!strncmp(tok[0], "list_", 5) || !strcmp(tok[1], "list"))
+        listCommand(tok, createFlag);
     /*
        if(!strcmp(cmd, "hash"))
        return HASHTABLE;
        if(!strcmp(cmd, "bitmap"))
        return BITMAP;
-       if(!strcmp(cmd, "delete") || !strcmp(cmd, "dumpdata") || !strcmp(cmd, "quit"))
-       return NONE;
-       return ERROR;
        */
+    if(!strcmp(tok[0], "dumpdata") && tok[1][0] != '\0')
+        dataDumper(tok[1]);
+    //if(!strcmp(cmd, "delete") || !strcmp(cmd, "quit"))
 }
 
-void listCommand(char* input, bool createFlag) {
-    char op[INPUT_SIZE] = { '\0' };
-    char name[INPUT_SIZE] = { '\0' };
-    char par[5][INPUT_SIZE] = { '\0' };
-    LIST_FUNC func;
+void dataDumper(char* name) {
+    CMD_TYPE type = LIST;
+    int index;
+    struct list_elem *it;
 
-    assert(input != NULL);
+    while((index = findTargetIndex(type, name)) == -1) {
+        if(type < BITMAP)
+            type++;
+        else
+            return;
+    }
+    
+    switch(type) {
+        case LIST:
+            for(it = list_begin(listArray[index].listLink);
+                    it != list_end(listArray[index].listLink);
+                    it = list_next(it)) {
+                printf("%d ", list_entry(it, LIST_ITEM, elem)->data);
+            }
+            puts("");
+            break;
+        case HASHTABLE:
+        case BITMAP:
+            break;
+        default:
+            break;
+    }
+}
+
+void listCommand(char tok[][INPUT_SIZE], bool createFlag) {
+    char funcList[][INPUT_SIZE] = {
+        "create", "destroy",
+        "insert", "splice", "push_front", "push_back",
+        "remove", "pop_front", "pop_back", "front", "back",
+        "size", "empty",
+        "reverse", "sort", "insert_ordered", "unique",
+        "max", "min",
+        "swap", "shuffle"
+    };
+    char funcName[INPUT_SIZE] = { '\0' };
+    LIST_FUNC funcNum;
+    int index;
+
+    LIST_ITEM *listItem = NULL;
+
     if(createFlag) {
-        func = L_CREATE;
+        funcNum = L_CREATE;
+        assert(tok[2][0] != '\0');
+        assert(tok[3][0] == '\0');
         assert(listCount >= 0 && listCount <= 10);
-        strcpy(listName[listCount], input);
-        ((void(*)(struct list*)) listFunc[func])(listArray + listCount);
+
+        for(index = 0; listArray[index].listLink && index < MAX_LIST; index++);
+
+        strcpy(listArray[index].listName, tok[2]);
+        listArray[index].listLink = (struct list*) malloc(sizeof(struct list));
         listCount++;
-        return;
+    }
+    else {
+        strcpy(funcName, tok[0] + 5);
+        index = findTargetIndex(LIST, tok[1]);
+        for(funcNum = L_INSERT; strcmp(funcName, funcList[funcNum]) && funcNum <= L_SHUFFLE; funcNum++);
+    }
+
+    assert(index != -1);
+    assert(index < MAX_LIST);
+    struct list* targetList = listArray[index].listLink;
+
+    switch(funcNum) {
+        // return type is void
+        case L_CREATE:
+        case L_REVERSE:
+        case L_SHUFFLE:
+            ((void(*)(struct list*)) listFunc[funcNum]) (targetList);
+            break;
+        case L_INSERT:
+            listItem = (LIST_ITEM*) malloc(sizeof(LIST_ITEM));
+            listItem->data = strtol(tok[3], NULL, 10);
+            //((void(*)(struct list_elem*, struct list_elem* )) listFunc[funcNum])((listArray[index]).listLink);
+            break;
+        case L_SPLICE:
+            break;
+        case L_PUSH_FRONT:
+        case L_PUSH_BACK:
+            listItem = (LIST_ITEM*) malloc(sizeof(LIST_ITEM));
+            listItem->data = strtol(tok[2], NULL, 10);
+            ((void(*)(struct list*, struct list_elem*)) listFunc[funcNum]) (targetList, &(listItem->elem));
+            break;
+        case L_SORT:
+        case L_INSERT_ORDERED:
+        case L_UNIQUE:
+        case L_SWAP:
+            break;
+        // return type is struct list_elem*
+        case L_REMOVE:
+        case L_POP_FRONT:
+        case L_POP_BACK:
+        case L_FRONT:
+        case L_BACK:
+        case L_MAX:
+        case L_MIN:
+            break;
+        // return type is size_t
+        case L_SIZE:
+            break;
+        // return type is bool
+        case L_EMPTY:
+            break;
+        default:
+            errorDump("Unkown list command");
+            break;
     }
 }
