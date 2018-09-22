@@ -148,7 +148,7 @@ struct bitmap *bitmap_expand (struct bitmap *bitmap, int size) {
         bitmap->bit_cnt += size;
         bitmap->bits = realloc (bitmap->bits, byte_cnt (bitmap->bit_cnt));
         if (bitmap->bits != NULL || bitmap->bit_cnt == 0) {
-            bitmap_set_all (bitmap, false);
+            //bitmap_set_all (bitmap, false);
             return bitmap;
         }
         free (bitmap);
