@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <stdbool.h>
+
+#define MAX_LIST 10
+#define MAX_HASHTABLE 10
+#define MAX_BITMAP 10
 
 #define INPUT_SIZE 101
 #define ERROR_CODE -1
@@ -39,5 +44,5 @@ typedef enum {
     B_EXPAND // new function
 } BITMAP_FUNC;
 
-void inputParser(char* input);
-void listCommand(char* input);
+void inputParser(char*);
+void listCommand(char*, bool);

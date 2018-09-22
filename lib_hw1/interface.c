@@ -1,10 +1,10 @@
 #include "interface.h"
-#include "bitmap.h"
-#include "debug.h"
-#include "hash.h"
-#include "limits.h"
+//#include "bitmap.h"
+//#include "debug.h"
+//#include "hash.h"
+//#include "limits.h"
 #include "list.h"
-#include "round.h"
+//#include "round.h"
 
 void *listFunc[] = {
     &list_init,
@@ -15,9 +15,13 @@ void *listFunc[] = {
     &list_max, &list_min,
     &list_swap, &list_shuffle
 };
+struct list listArray[MAX_LIST];
+char listName[MAX_LIST][INPUT_SIZE];
+int listCount;
 
 int main() {
     char str[INPUT_SIZE];
+    listCount = 0;
 
     while(true) {
         memset(str, '\0', INPUT_SIZE);
@@ -44,17 +48,31 @@ void inputParser(char* input) {
     }
 
     if(!strcmp(cmd, "list"))
-        listCommand(input);
+        listCommand(strtok(input, NULL), createFlag);
     /*
-    if(!strcmp(cmd, "hash"))
-        return HASHTABLE;
-    if(!strcmp(cmd, "bitmap"))
-        return BITMAP;
-    if(!strcmp(cmd, "delete") || !strcmp(cmd, "dumpdata") || !strcmp(cmd, "quit"))
-        return NONE;
-    return ERROR;
-    */
+       if(!strcmp(cmd, "hash"))
+       return HASHTABLE;
+       if(!strcmp(cmd, "bitmap"))
+       return BITMAP;
+       if(!strcmp(cmd, "delete") || !strcmp(cmd, "dumpdata") || !strcmp(cmd, "quit"))
+       return NONE;
+       return ERROR;
+       */
 }
 
-void listCommand(char* input) {
+void listCommand(char* input, bool createFlag) {
+    char op[INPUT_SIZE] = { '\0' };
+    char name[INPUT_SIZE] = { '\0' };
+    char par[5][INPUT_SIZE] = { '\0' };
+    LIST_FUNC func;
+
+    assert(input != NULL);
+    if(createFlag) {
+        func = L_CREATE;
+        assert(listCount >= 0 && listCount <= 10);
+        strcpy(listName[listCount], input);
+        ((void(*)(struct list*)) listFunc[func])(listArray + listCount);
+        listCount++;
+        return;
+    }
 }
