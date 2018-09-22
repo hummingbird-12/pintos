@@ -355,12 +355,15 @@ void list_swap (struct list_elem *a, struct list_elem *b) {
     struct list_elem temp = *a;
 
     if(bNext == a) {
-        struct list_elem *tmp = a;
-        a = b;
-        b = tmp;
-    }
+        bPrev->next = a;
+        a->prev = bPrev;
+        a->next = b;
 
-    if(aNext == b) {
+        b->prev = a;
+        b->next = aNext;
+        aNext->prev = b;
+    }
+    else if(aNext == b) {
         aPrev->next = b;
         b->prev = aPrev;
         b->next = a;
@@ -388,10 +391,16 @@ void list_shuffle (struct list *list) {
     srand(time(NULL));
 
     for(i = 0; i < size; i++)
-        for(it1 = list_begin(list); it1->next != list_end(list); it1 = list_next(it1))
-            for(it2 = list_next(it1); it2 != list_end(list); it2 = list_next(it2))
+        for(it1 = list_begin(list); it1->next != list_end(list); it1 = list_next(it1)) {
+            for(it2 = list_next(it1); it2 != list_end(list); it2 = list_next(it2)) {
                 if(rand() % 2)
                     list_swap(it1, it2);
+                if(it2 == list_end(list))
+                    break;
+            }
+        if(it1 == list_end(list) || it1->next == list_end(list))
+            break;
+        }
 }
 
 /* Returns true only if the list elements A through B (exclusive)
