@@ -145,6 +145,8 @@ void listCommand(char tok[][INPUT_SIZE], bool createFlag) {
     int index;
 
     LIST_ITEM *listItem = NULL;
+    struct list_elem *elem1;
+    struct list_elem *elem2;
 
     if(createFlag) {
         funcNum = L_CREATE;
@@ -189,9 +191,18 @@ void listCommand(char tok[][INPUT_SIZE], bool createFlag) {
             ((void(*)(struct list*, struct list_elem*)) listFunc[funcNum]) (targetList, &(listItem->elem));
             break;
         case L_SORT:
+            //((void(*)(struct list*, struct list_elem*)) listFunc[funcNum]) (targetList, &(listItem->elem));
+            break;
         case L_INSERT_ORDERED:
         case L_UNIQUE:
+            break;
         case L_SWAP:
+            elem1 = listSearch(targetList, strtol(tok[2], NULL, 10));
+            elem2 = listSearch(targetList, strtol(tok[3], NULL, 10));
+
+            assert(elem1 != NULL && elem2 != NULL);
+
+            ((void(*)(struct list_elem*, struct list_elem*)) listFunc[funcNum]) (elem1, elem2);
             break;
         // return type is struct list_elem*
         case L_REMOVE:
@@ -212,4 +223,12 @@ void listCommand(char tok[][INPUT_SIZE], bool createFlag) {
             errorDump("Unkown list command");
             break;
     }
+}
+
+struct list_elem* listSearch(struct list* list, int data) {
+    struct list_elem *it;
+    for(it = list_begin(list); it != list_end(list); it = list_next(it))
+        if(data == list_entry(it, LIST_ITEM, elem)->data)
+            return it;
+    return NULL;
 }
