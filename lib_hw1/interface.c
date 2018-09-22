@@ -262,18 +262,30 @@ void listCommand(char tok[][INPUT_SIZE], bool createFlag) {
             break;
         // return type is struct list_elem*
         case L_REMOVE:
+            elem1 = listSearchByIndex(targetList, strtol(tok[2], NULL, 10));
+            ((struct list_elem*(*)(struct list_elem*)) listFunc[funcNum]) (elem1);
+            
+            free(list_entry(elem1, LIST_ITEM, elem));
+            break;
         case L_POP_FRONT:
         case L_POP_BACK:
+            free(list_entry((((struct list_elem*(*)(struct list*)) listFunc[funcNum]) (targetList)), LIST_ITEM, elem));
+            break;
         case L_FRONT:
         case L_BACK:
+            printf("%d\n", list_entry(((struct list_elem*(*)(struct list*)) listFunc[funcNum]) (targetList), LIST_ITEM, elem)->data);
+            break;
         case L_MAX:
         case L_MIN:
+            printf("%d\n", list_entry(((struct list_elem*(*)(struct list*, list_less_func*, void*)) listFunc[funcNum]) (targetList, (list_less_func*) elem_compare, NULL), LIST_ITEM, elem)->data);
             break;
         // return type is size_t
         case L_SIZE:
+            printf("%zu\n", ((size_t(*)(struct list*)) listFunc[funcNum]) (targetList));
             break;
         // return type is bool
         case L_EMPTY:
+            printf("%s\n", (((bool(*)(struct list*)) listFunc[funcNum]) (targetList)) ? "true" : "false");
             break;
         default:
             errorDump("Unkown list command");
