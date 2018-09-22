@@ -119,7 +119,8 @@ void dataDumper(char* name) {
                     it = list_next(it)) {
                 printf("%d ", list_entry(it, LIST_ITEM, elem)->data);
             }
-            puts("");
+            if(!list_empty(listArray[index].listLink))
+                puts("");
             break;
         case HASHTABLE:
         case BITMAP:
@@ -244,8 +245,10 @@ void listCommand(char tok[][INPUT_SIZE], bool createFlag) {
             ((void(*)(struct list*, struct list_elem*, list_less_func*, void*)) listFunc[funcNum]) (targetList, &(listItem->elem), (list_less_func*) elem_compare, NULL);
             break;
         case L_UNIQUE:
-            assert(findTargetIndex(LIST, tok[2]) != -1 && findTargetIndex(LIST, tok[2]) < MAX_LIST);
-            targetList2 = listArray[findTargetIndex(LIST, tok[2])].listLink;
+            if(tok[2][0] == '\0')
+                targetList2 = NULL;
+            else
+                targetList2 = listArray[findTargetIndex(LIST, tok[2])].listLink;
             
             ((void(*)(struct list*, struct list*, list_less_func*, void*)) listFunc[funcNum]) (targetList, targetList2, (list_less_func*) elem_compare, NULL);
             break;
