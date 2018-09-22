@@ -137,11 +137,10 @@ void listCommand(char tok[][INPUT_SIZE], bool createFlag) {
     };
     char funcName[INPUT_SIZE] = { '\0' };
     LIST_FUNC funcNum;
-    int index;
+    int index, i;
 
     LIST_ITEM *listItem = NULL;
-    struct list_elem *elem1;
-    struct list_elem *elem2;
+    struct list_elem *elem0, *elem1, *elem2, *elem3;
 
     if(createFlag) {
         funcNum = L_CREATE;
@@ -176,17 +175,26 @@ void listCommand(char tok[][INPUT_SIZE], bool createFlag) {
             listItem = (LIST_ITEM*) malloc(sizeof(LIST_ITEM));
             listItem->data = strtol(tok[3], NULL, 10);
 
-            elem1 = listSearch(targetList, strtol(tok[2], NULL, 10));
-            assert(elem1 != NULL);
+            elem1 = listSearchByIndex(targetList, strtol(tok[2], NULL, 10));
+            if(!elem1)
+                elem1 = list_end(targetList);
 
-            ((void(*)(struct list_elem*, struct list_elem* )) listFunc[funcNum])(elem1, &(listItem->elem));
+            ((void(*)(struct list_elem*, struct list_elem*)) listFunc[funcNum])(elem1, &(listItem->elem));
             break;
         case L_SPLICE:
+            elem1 = listSearchByIndex(targetList, strtol(tok[2], NULL, 10));
+            elem2 = listSearchByIndex(targetList, strtol(tok[3], NULL, 10));
+            elem3 = listSearchByIndex(targetList, strtol(tok[4], NULL, 10));
+
+            assert(elem1 != NULL && elem2 != NULL && elem3 != NULL);
+
+            ((void(*)(struct list_elem*, struct list_elem*, struct list_elem*)) listFunc[funcNum]) (elem1, elem2, elem3);
             break;
         case L_PUSH_FRONT:
         case L_PUSH_BACK:
             listItem = (LIST_ITEM*) malloc(sizeof(LIST_ITEM));
             listItem->data = strtol(tok[2], NULL, 10);
+
             ((void(*)(struct list*, struct list_elem*)) listFunc[funcNum]) (targetList, &(listItem->elem));
             break;
         case L_SORT:
@@ -196,8 +204,8 @@ void listCommand(char tok[][INPUT_SIZE], bool createFlag) {
         case L_UNIQUE:
             break;
         case L_SWAP:
-            elem1 = listSearch(targetList, strtol(tok[2], NULL, 10));
-            elem2 = listSearch(targetList, strtol(tok[3], NULL, 10));
+            elem1 = listSearchByIndex(targetList, strtol(tok[2], NULL, 10));
+            elem2 = listSearchByIndex(targetList, strtol(tok[3], NULL, 10));
 
             assert(elem1 != NULL && elem2 != NULL);
 
@@ -224,10 +232,20 @@ void listCommand(char tok[][INPUT_SIZE], bool createFlag) {
     }
 }
 
-struct list_elem* listSearch(struct list* list, int data) {
+struct list_elem* listSearchByData(struct list* list, int data) {
     struct list_elem *it;
     for(it = list_begin(list); it != list_end(list); it = list_next(it))
         if(data == list_entry(it, LIST_ITEM, elem)->data)
+            return it;
+    return NULL;
+}
+
+struct list_elem* listSearchByIndex(struct list* list, int index) {
+    struct list_elem *it;
+    int i;
+
+    for(it = list_begin(list), i = 0; it != list_end(list); it = list_next(it), i++)
+        if(i == index)
             return it;
     return NULL;
 }
