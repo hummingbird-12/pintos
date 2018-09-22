@@ -175,7 +175,11 @@ void listCommand(char tok[][INPUT_SIZE], bool createFlag) {
         case L_INSERT:
             listItem = (LIST_ITEM*) malloc(sizeof(LIST_ITEM));
             listItem->data = strtol(tok[3], NULL, 10);
-            //((void(*)(struct list_elem*, struct list_elem* )) listFunc[funcNum])((listArray[index]).listLink);
+
+            elem1 = listSearch(targetList, strtol(tok[2], NULL, 10));
+            assert(elem1 != NULL);
+
+            ((void(*)(struct list_elem*, struct list_elem* )) listFunc[funcNum])(elem1, &(listItem->elem));
             break;
         case L_SPLICE:
             break;
