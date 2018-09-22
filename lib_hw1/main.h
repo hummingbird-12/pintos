@@ -29,7 +29,7 @@ struct list_item{
 };
 
 char str_cmd_list[][20] = {
-  "list_insert", "list_spice", "list_push_front", "list_push_back",
+  "list_insert", "list_splice", "list_push_front", "list_push_back",
   "list_remove", "list_pop_front", "list_pop_back", "list_front", "list_back", 
   "list_size", "list_empty",
   "list_reverse", "list_sort", "list_insert_ordered", "list_unique",
@@ -57,7 +57,7 @@ char str_ds[][20]={
 
 
 enum _CMD_LIST{
-  LIST_INSERT, LIST_SPICE, LIST_PUSH_FRONT, LIST_PUSH_BACK,
+  LIST_INSERT, LIST_SPLICE, LIST_PUSH_FRONT, LIST_PUSH_BACK,
   LIST_REMOVE, LIST_POP_FRONT, LIST_POP_BACK, LIST_FRONT, LIST_BACK,
   LIST_SIZE, LIST_EMPTY,
   LIST_REVERSE, LIST_SORT, LIST_INSERT_ORDERED, LIST_UNIQUE,

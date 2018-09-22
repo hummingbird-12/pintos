@@ -176,7 +176,7 @@ void delete(char para[][COMMAND_MAX_SIZE]){
 
       break;
   }
-  printf("hey!!\n");
+
   if(dc == dc_head){
     dc_head = dc->next;
     if(dc == dc_tail)
@@ -238,12 +238,64 @@ struct data_collect* find_data_collect(char name[]){
 void list_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE] ){
   struct data_collect *dc;
   struct list_item *item;
+  struct list_elem *elem,*elem1,*elem2,*elem_tmp;
+  struct list *list,*list1,*list2;
+  int cnt;
+  int idx1,idx2,idx3;
 
   switch(cmd){
     case LIST_INSERT:
+      dc = find_data_collect(ds);
+      ASSERT(dc != NULL);
 
+      item = (struct list_item*)malloc(sizeof(struct list_item));
+      item->data = strtol(para[1],NULL,10);
+      cnt = strtol(para[0],NULL,10);
+      
+      list = (dc->data).list;
+      for(elem = list_begin(list) ; elem != list_end(list);){
+        if(cnt==0) break; 
+        elem = list_next(elem);
+        cnt--;
+      }
+
+      list_insert(elem,&(item->elem));
       break;
-    case LIST_SPICE:
+
+
+    case LIST_SPLICE:
+      dc = find_data_collect(ds);
+      ASSERT(dc != NULL);
+      list1 = (dc->data).list;
+      
+      cnt = 0;
+      idx1 = strtol(para[0],NULL,10);
+      
+      dc = find_data_collect(para[1]);
+      ASSERT(dc != NULL);
+      list2 = (dc->data).list;
+
+      idx2 = strtol(para[2],NULL,10);
+      idx3 = strtol(para[3],NULL,10);
+     
+      for(elem = list_begin(list1) ; elem != list_end(list1) ; ){
+        if(cnt == idx1) break;
+        elem  = list_next(elem);
+        cnt++;
+      }
+
+      cnt=0;
+      for(elem_tmp = list_begin(list2); elem_tmp!= list_end(list2);){
+        if(cnt == idx3){
+          elem2 = elem_tmp;
+          break;
+        }
+        if(cnt == idx2) elem1 = elem_tmp;
+        
+        elem_tmp = list_next(elem_tmp);
+        cnt++;
+      }
+      list_splice(elem, elem1,elem2);
       break;
       
     case LIST_PUSH_FRONT:
