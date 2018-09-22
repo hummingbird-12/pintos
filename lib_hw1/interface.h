@@ -48,7 +48,8 @@ typedef enum {
 
 void initializer();
 int findTargetIndex(CMD_TYPE, char*);
-void inputParser(char*);
+bool inputParser(char*);
 void dataDumper(char*);
+void dataDestroyer(char*);
 
 void listCommand(char[][INPUT_SIZE], bool);

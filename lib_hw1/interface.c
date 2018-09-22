@@ -26,11 +26,11 @@ int main() {
 
     initializer();
     
-    while(true) {
+    do {
         memset(str, '\0', INPUT_SIZE);
         fgets(str, sizeof(str), stdin);
-        inputParser(str);
-    }
+    } while(!inputParser(str));
+    
     return 0;
 }
 
@@ -62,11 +62,11 @@ int findTargetIndex(CMD_TYPE type, char *name) {
     return -1;
 }
 
-void inputParser(char* input) {
+bool inputParser(char* input) {
     char delim[] = " \n";
     char tok[20][INPUT_SIZE] = { '\0' };
     int i = 0;
-    bool createFlag = false;
+    bool createFlag = false, quitFlag = false;
 
     assert(input != NULL);
 
@@ -93,7 +93,11 @@ void inputParser(char* input) {
        */
     if(!strcmp(tok[0], "dumpdata") && tok[1][0] != '\0')
         dataDumper(tok[1]);
-    //if(!strcmp(cmd, "delete") || !strcmp(cmd, "quit"))
+    if(!strcmp(tok[0], "delete"))
+        dataDestroyer(tok[1]);
+    if(!strcmp(tok[0], "quit"))
+        quitFlag = true;
+    return quitFlag;
 }
 
 void dataDumper(char* name) {
@@ -116,6 +120,38 @@ void dataDumper(char* name) {
                 printf("%d ", list_entry(it, LIST_ITEM, elem)->data);
             }
             puts("");
+            break;
+        case HASHTABLE:
+        case BITMAP:
+            break;
+        default:
+            break;
+    }
+}
+
+void dataDestroyer(char* name) {
+    CMD_TYPE type = LIST;
+    int index;
+    struct list_elem *it1, *it2;
+
+    while((index = findTargetIndex(type, name)) == -1) {
+        if(type < BITMAP)
+            type++;
+        else
+            return;
+    }
+    
+    switch(type) {
+        case LIST:
+            for(it1 = list_begin(listArray[index].listLink);
+                    it1 != list_end(listArray[index].listLink);) {
+                it2 = list_next(it1);
+                free(list_entry(it1, LIST_ITEM, elem));
+                it1 = it2;
+            }
+            listArray[index].listLink = NULL;
+            listCount--;
+            memset(listArray[index].listName, INPUT_SIZE, '\0');
             break;
         case HASHTABLE:
         case BITMAP:
@@ -163,6 +199,7 @@ void listCommand(char tok[][INPUT_SIZE], bool createFlag) {
     assert(index != -1);
     assert(index < MAX_LIST);
     struct list* targetList = listArray[index].listLink;
+    struct list* targetList2;
 
     switch(funcNum) {
         // return type is void
@@ -201,7 +238,16 @@ void listCommand(char tok[][INPUT_SIZE], bool createFlag) {
             ((void(*)(struct list*, list_less_func*, void*)) listFunc[funcNum]) (targetList, (list_less_func*) elem_compare, NULL);
             break;
         case L_INSERT_ORDERED:
+            listItem = (LIST_ITEM*) malloc(sizeof(LIST_ITEM));
+            listItem->data = strtol(tok[3], NULL, 10);
+
+            ((void(*)(struct list*, struct list_elem*, list_less_func*, void*)) listFunc[funcNum]) (targetList, &(listItem->elem), (list_less_func*) elem_compare, NULL);
+            break;
         case L_UNIQUE:
+            assert(findTargetIndex(LIST, tok[2]) != -1 && findTargetIndex(LIST, tok[2]) < MAX_LIST);
+            targetList2 = listArray[findTargetIndex(LIST, tok[2])].listLink;
+            
+            ((void(*)(struct list*, struct list*, list_less_func*, void*)) listFunc[funcNum]) (targetList, targetList2, (list_less_func*) elem_compare, NULL);
             break;
         case L_SWAP:
             elem1 = listSearchByIndex(targetList, strtol(tok[2], NULL, 10));
