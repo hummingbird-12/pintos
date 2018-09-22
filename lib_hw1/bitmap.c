@@ -33,6 +33,16 @@ struct bitmap
     elem_type *bits;    /* Elements that represent bits. */
   };
 
+/*project0-2: Expanding bitmap */
+struct bitmap *bitmap_expand(struct bitmap *bitmap, int size){ 
+  
+ // ASSERT (size <= bitmap->bit_cnt);
+  bitmap->bit_cnt = bitmap->bit_cnt+size;
+  bitmap->bits = realloc(bitmap->bits, sizeof(bitmap->bits)*size);
+  return bitmap;
+}
+
+
 /* Returns the index of the element that contains the bit
    numbered BIT_IDX. */
 static inline size_t
@@ -167,7 +177,7 @@ bitmap_mark (struct bitmap *b, size_t bit_idx)
   /* This is equivalent to `b->bits[idx] |= mask' except that it
      is guaranteed to be atomic on a uniprocessor machine.  See
      the description of the OR instruction in [IA32-v2b]. */
-  asm ("orl %1, %0" : "=m" (b->bits[idx]) : "r" (mask) : "cc");
+  asm ("orl %k1, %k0" : "=m" (b->bits[idx]) : "r" (mask) : "cc");
 }
 
 /* Atomically sets the bit numbered BIT_IDX in B to false. */
