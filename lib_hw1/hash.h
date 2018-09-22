@@ -100,4 +100,7 @@ unsigned hash_bytes (const void *, size_t);
 unsigned hash_string (const char *);
 unsigned hash_int (int);
 
+/*proj0-2 : make hashtable */
+unsigned hash_int_2(int i);
+
 #endif /* lib/kernel/hash.h */

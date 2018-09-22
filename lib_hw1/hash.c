@@ -430,3 +430,15 @@ remove_elem (struct hash *h, struct hash_elem *e)
   list_remove (&e->list_elem);
 }
 
+unsigned hash_int_2(int i){
+  unsigned hash = 331;
+  int cnt=0;
+
+  while(cnt++ <= i){
+    hash = ((hash<<5) + hash) + cnt;
+  }
+  return hash; 
+}
+
+
+
