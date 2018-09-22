@@ -6,11 +6,6 @@
 #include "list.h"
 //#include "round.h"
 
-typedef struct {
-    struct list_elem elem;
-    int data;
-} LIST_ITEM;
-
 void *listFunc[] = {
     &list_init, NULL,
     &list_insert, &list_splice, &list_push_front, &list_push_back,
@@ -191,7 +186,7 @@ void listCommand(char tok[][INPUT_SIZE], bool createFlag) {
             ((void(*)(struct list*, struct list_elem*)) listFunc[funcNum]) (targetList, &(listItem->elem));
             break;
         case L_SORT:
-            //((void(*)(struct list*, struct list_elem*)) listFunc[funcNum]) (targetList, &(listItem->elem));
+            ((void(*)(struct list*, list_less_func*, void*)) listFunc[funcNum]) (targetList, (list_less_func*) elem_compare, NULL);
             break;
         case L_INSERT_ORDERED:
         case L_UNIQUE:

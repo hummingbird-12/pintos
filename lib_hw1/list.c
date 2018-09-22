@@ -589,3 +589,12 @@ list_min (struct list *list, list_less_func *less, void *aux)
     }
   return min;
 }
+
+bool elem_compare(struct list_elem* elemA, struct list_elem* elemB, void* aux) {
+    LIST_ITEM *it1, *it2;
+    assert(elemA != NULL && elemB != NULL);
+    assert((it1 = list_entry(elemA, LIST_ITEM, elem)) != NULL);
+    assert((it2 = list_entry(elemB, LIST_ITEM, elem)) != NULL);
+
+    return it1->data < it2->data;
+}

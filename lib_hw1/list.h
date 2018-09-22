@@ -100,6 +100,11 @@ struct list
     struct list_elem tail;      /* List tail. */
   };
 
+typedef struct {
+    struct list_elem elem;
+    int data;
+} LIST_ITEM;
+
 /* Converts pointer to list element LIST_ELEM into a pointer to
    the structure that LIST_ELEM is embedded inside.  Supply the
    name of the outer structure STRUCT and the member name MEMBER
@@ -167,5 +172,6 @@ void list_unique (struct list *, struct list *duplicates,
 /* Max and min. */
 struct list_elem *list_max (struct list *, list_less_func *, void *aux);
 struct list_elem *list_min (struct list *, list_less_func *, void *aux);
+bool elem_compare(struct list_elem*, struct list_elem*, void*);
 
 #endif /* lib/kernel/list.h */
