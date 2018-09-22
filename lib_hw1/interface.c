@@ -42,13 +42,13 @@ void inputParser(char* input) {
     assert(cmd != NULL);
 
     if(!strcmp(cmd, "create")) {
-        cmd = strtok(input, NULL);
+        cmd = strtok(NULL, delim);
         assert(cmd != NULL);
         createFlag = true;
     }
 
     if(!strcmp(cmd, "list"))
-        listCommand(strtok(input, NULL), createFlag);
+        listCommand(strtok(NULL, delim), createFlag);
     /*
        if(!strcmp(cmd, "hash"))
        return HASHTABLE;
