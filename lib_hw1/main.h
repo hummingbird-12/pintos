@@ -112,7 +112,11 @@ void list_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE]);
 
 
 //hash
+
 void hash_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE]);
 bool hash_less(const struct hash_elem *a, const struct hash_elem *b, void *aux);
 unsigned hash_int_2_func(const struct hash_elem *elem, void *aux);
-void hash_destruct(const struct hash_elem *elem, void *aux);
+unsigned hash_int_func(const struct hash_elem *elem, void *aux);
+void hash_destructor(struct hash_elem *elem, void *aux);
+void hash_triple(struct hash_elem *elem, void *aux);
+void hash_square(struct hash_elem *elem, void *aux);

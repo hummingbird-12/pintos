@@ -10,7 +10,7 @@ int main(){
   char command[COMMAND_MAX_SIZE];
   char para[PARA_SIZE][COMMAND_MAX_SIZE];
   char ds[COMMAND_MAX_SIZE];
-  
+
   dc_head=NULL;
   dc_tail=NULL;
 
@@ -18,18 +18,18 @@ int main(){
   while(1){
     command_init(command,ds,para);
     command_input(command, ds, para);
-  //  printf("test: %s/%s/%s\n",command,ds,para[0]);
+    //  printf("test: %s/%s/%s\n",command,ds,para[0]);
     if(command_process(command, ds, para)==-1)  break;
-    
-    
+
+
   }
 
-  
+
 }
 
 void command_init(char command[], char ds[], char para[][COMMAND_MAX_SIZE]){
   int i;
-  
+
   memset(command, '\0', COMMAND_MAX_SIZE);
   memset(ds, '\0', COMMAND_MAX_SIZE);
   for(i=0; i<PARA_SIZE ; i++){
@@ -41,7 +41,7 @@ void command_input(char command[], char ds[], char para[][COMMAND_MAX_SIZE]){
   int cnt=0;
   char *token;
   char input[COMMAND_MAX_SIZE];
-  
+
   fgets(input,COMMAND_MAX_SIZE,stdin);
   token = strtok(input, " \n");
   do{
@@ -50,7 +50,7 @@ void command_input(char command[], char ds[], char para[][COMMAND_MAX_SIZE]){
     else strcpy( para[cnt-2] ,token);
     cnt++;
   }while (token = strtok(NULL, " \n"));  
-  
+
 }
 
 
@@ -92,7 +92,7 @@ void etc_process(int cmd,char ds[], char para[][COMMAND_MAX_SIZE]){
       strcpy(para[0],ds);
       dumpdata(para);
       break;
-      
+
   }
 
 }
@@ -121,29 +121,29 @@ void create(char ds[], char para[][COMMAND_MAX_SIZE]){
         case HASHTABLE:
           hash=(struct hash*)malloc(sizeof(struct hash));
           (dc->data).hash = hash;
-          hash_init(hash, hash_int_2_func,hash_less,NULL);
+          hash_init(hash, hash_int_func,hash_less,NULL);
           break;
 
         case BITMAP:
-          
+
 
           break;
       }
       break;
     }
 
-    //make and link data_collect 
-    strcpy(dc->name,para[0]);
-    dc->next = NULL;
-    dc->data_type = i;
-    if(dc_head == NULL){
-        dc_head = dc;
-        dc_tail = dc;
-    }
-    else{
-        dc_tail->next = dc;
-        dc_tail=dc;
-    }
+  //make and link data_collect 
+  strcpy(dc->name,para[0]);
+  dc->next = NULL;
+  dc->data_type = i;
+  if(dc_head == NULL){
+    dc_head = dc;
+    dc_tail = dc;
+  }
+  else{
+    dc_tail->next = dc;
+    dc_tail=dc;
+  }
 
 
 }
@@ -156,10 +156,10 @@ void delete(char para[][COMMAND_MAX_SIZE]){
 
   struct hash *hash;
   struct hash_iterator iter;
-  
+
   dc = find_data_collect(para[0]);
   ASSERT(dc!=NULL);
- 
+
   switch(dc->data_type){
     case LIST:
       list = (dc->data).list;
@@ -181,7 +181,7 @@ void delete(char para[][COMMAND_MAX_SIZE]){
       break;
 
     case BITMAP:
-      
+
       break;
   }
 
@@ -196,7 +196,7 @@ void delete(char para[][COMMAND_MAX_SIZE]){
     if(dc == dc_tail)
       dc_tail=bef_dc;
   }
-  
+
   free(dc);
 
 }
@@ -206,7 +206,7 @@ void dumpdata(char para[][COMMAND_MAX_SIZE]){
   struct data_collect *dc;
   struct list *list;
   struct list_elem *elem;
- 
+
   struct hash *hash;
   struct hash_iterator iter;
   struct hash_elem *h_elem;
@@ -268,7 +268,7 @@ void list_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE] ){
       item = (struct list_item*)malloc(sizeof(struct list_item));
       item->data = strtol(para[1],NULL,10);
       cnt = strtol(para[0],NULL,10);
-      
+
       list = (dc->data).list;
       for(elem = list_begin(list) ; elem != list_end(list);){
         if(cnt==0) break; 
@@ -284,17 +284,17 @@ void list_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE] ){
       dc = find_data_collect(ds);
       ASSERT(dc != NULL);
       list1 = (dc->data).list;
-      
+
       cnt = 0;
       idx1 = strtol(para[0],NULL,10);
-      
+
       dc = find_data_collect(para[1]);
       ASSERT(dc != NULL);
       list2 = (dc->data).list;
 
       idx2 = strtol(para[2],NULL,10);
       idx3 = strtol(para[3],NULL,10);
-     
+
       for(elem = list_begin(list1) ; elem != list_end(list1) ; ){
         if(cnt == idx1) break;
         elem  = list_next(elem);
@@ -308,13 +308,13 @@ void list_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE] ){
           break;
         }
         if(cnt == idx2) elem1 = elem_tmp;
-        
+
         elem_tmp = list_next(elem_tmp);
         cnt++;
       }
       list_splice(elem, elem1,elem2);
       break;
-      
+
     case LIST_PUSH_FRONT:
       dc = find_data_collect(ds);
       ASSERT(dc != NULL); 
@@ -334,7 +334,7 @@ void list_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE] ){
     case LIST_REMOVE:
       dc = find_data_collect(ds);
       ASSERT(dc != NULL);
-      
+
       cnt = 0;
       idx1 = strtol(para[0], NULL , 10);
 
@@ -350,7 +350,7 @@ void list_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE] ){
     case LIST_POP_FRONT:
       dc = find_data_collect(ds);
       ASSERT(dc != NULL);
-      
+
       list = (dc->data).list;
       list_pop_front(list);
       break;
@@ -358,14 +358,14 @@ void list_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE] ){
 
       dc = find_data_collect(ds);
       ASSERT(dc != NULL);
-      
+
       list = (dc->data).list;
       list_pop_back(list);
       break;
     case LIST_FRONT:
       dc = find_data_collect(ds);
       ASSERT(dc != NULL);
-      
+
       list = (dc->data).list;
       elem = list_front(list);
       printf("%d\n",(list_entry(elem,struct list_item, elem) )->data);
@@ -374,7 +374,7 @@ void list_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE] ){
     case LIST_BACK:   
       dc = find_data_collect(ds);
       ASSERT(dc != NULL);
-      
+
       list = (dc->data).list;
       elem = list_back(list);
       printf("%d\n",(list_entry(elem,struct list_item, elem) )->data);
@@ -384,14 +384,14 @@ void list_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE] ){
     case LIST_SIZE:  
       dc = find_data_collect(ds);
       ASSERT(dc != NULL);
-      
+
       list = (dc->data).list;
       printf("%zu\n",list_size(list));
       break;
     case LIST_EMPTY:
       dc = find_data_collect(ds);
       ASSERT(dc != NULL);
-      
+
       list = (dc->data).list;
       if(list_empty(list)==true) printf("true\n");
       else printf("false\n");
@@ -400,30 +400,30 @@ void list_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE] ){
     case LIST_REVERSE:
       dc = find_data_collect(ds);
       ASSERT(dc != NULL);
-      
+
       list = (dc->data).list;
       list_reverse(list);
       break;
     case LIST_SORT:
       dc = find_data_collect(ds);
       ASSERT(dc != NULL);
-      
+
       list = (dc->data).list;
       list_sort(list,list_less,NULL);
       break;
     case LIST_INSERT_ORDERED:
-       dc = find_data_collect(ds);
+      dc = find_data_collect(ds);
       ASSERT(dc != NULL);
-      
+
       list = (dc->data).list;
       item = (struct list_item*)malloc(sizeof(struct list_item));
       item->data = strtol(para[0],NULL,10);
       list_insert_ordered(list,&(item->elem),list_less,NULL );
       break;
     case LIST_UNIQUE:
-       dc = find_data_collect(ds);
+      dc = find_data_collect(ds);
       ASSERT(dc != NULL);
-      
+
       list = (dc->data).list;
 
       if(para[0][0] =='\0'){
@@ -438,7 +438,7 @@ void list_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE] ){
     case LIST_MAX:
       dc = find_data_collect(ds);
       ASSERT(dc != NULL);
-      
+
       list = (dc->data).list;
       elem = list_max(list,list_less,NULL);
       printf("%d\n",(list_entry(elem,struct list_item, elem) )->data);
@@ -446,7 +446,7 @@ void list_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE] ){
     case LIST_MIN:
       dc = find_data_collect(ds);
       ASSERT(dc != NULL);
-      
+
       list = (dc->data).list;
       elem = list_min(list,list_less,NULL);
       printf("%d\n",(list_entry(elem,struct list_item, elem) )->data);
@@ -498,43 +498,73 @@ void hash_process(int cmd,char ds[], char para[][COMMAND_MAX_SIZE]){
   struct hash* hash;
   struct hash_iterator iter;
   struct hash_elem* elem;
-  struct hash_item* item;  
+  struct hash_item* item; 
+
   dc = find_data_collect(ds);
   ASSERT(dc != NULL);
 
   switch(cmd){
     case HASH_INSERT:
+      hash = (dc->data).hash;
+      item = (struct hash_item*)malloc(sizeof(struct hash_item));
+      item->data = strtol(para[0],NULL,10);
+
+      hash_insert(hash,&(item->elem));
+      break;
+
+    case HASH_REPLACE:
+      hash = (dc->data).hash;
 
       item = (struct hash_item*)malloc(sizeof(struct hash_item));
       item->data = strtol(para[0],NULL,10);
-      hash_insert(hash,&(item->elem));
-
+      hash_replace(hash, &(item->elem));
       break;
 
-
-    break;
-
-    case HASH_REPLACE:
-    break;
-
     case HASH_FIND:
-    break;
+      hash = (dc->data).hash;
+
+      item = (struct hash_item*)malloc(sizeof(struct hash_item));
+      item->data = strtol(para[0],NULL,10); 
+      elem = hash_find(hash,&(item->elem));
+      if(elem==NULL) break;
+
+      printf("%d\n",hash_entry(elem,struct hash_item,elem)->data);
+      
+      break;
 
     case HASH_DELETE:
+      hash = (dc->data).hash;
+      item = (struct hash_item*)malloc(sizeof(struct hash_item));
+      item->data = strtol(para[0],NULL,10); 
 
-    break;
+      hash_delete(hash,&(item->elem));
+      
+      break;
 
     case HASH_CLEAR:
-    break;
+      hash = (dc->data).hash;
+      hash_clear(hash, hash_destructor);
+      break;
 
     case HASH_SIZE:
-    break;
+      hash = (dc->data).hash;
+      printf("%zu\n",hash_size(hash));
+      break;
 
     case HASH_EMPTY:
-    break;
+      hash = (dc->data).hash;
+      if(hash_empty(hash)) printf("true\n");
+      else printf("false\n");
+      break;
 
     case HASH_APPLY:
-    break;
+      hash = (dc->data).hash;
+      if(!strcmp(para[0],"triple") )
+        hash_apply(hash,hash_triple);
+      else
+        hash_apply(hash,hash_square);
+
+      break;
 
   }
 
@@ -556,9 +586,27 @@ unsigned hash_int_2_func(const struct hash_elem *elem, void *aux){
   item = hash_entry(elem,struct hash_item, elem);
   return hash_int_2(item->data);
 }
-void hash_destruct(const struct hash_elem *a,void *aux){
-  struct hash_item *elem;
 
-  elem = hash_entry(a, struct hash_item, elem);
-  elem = NULL;
+void hash_destructor(struct hash_elem *elem,void *aux){
+  struct hash_item *item;
+  item = hash_entry(elem, struct hash_item, elem);
+  item = NULL;
+}
+
+void hash_square(struct hash_elem *elem,void *aux){
+  struct hash_item *item;
+  item = hash_entry(elem, struct hash_item, elem);
+  item->data *= item->data;
+}
+void hash_triple(struct hash_elem *elem,void *aux){
+  struct hash_item *item;
+  item = hash_entry(elem, struct hash_item, elem);
+  item->data *= (item->data*item->data);
+}
+
+unsigned hash_int_func(const struct hash_elem *elem, void *aux){
+  struct hash_item *item;
+
+  item = hash_entry(elem,struct hash_item, elem);
+  return hash_int(item->data);
 }
