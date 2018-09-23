@@ -106,7 +106,7 @@ int findTargetIndex(CMD_TYPE type, char *name) {
 
 bool inputParser(char* input) {
     char delim[] = " \n";
-    char tok[20][INPUT_SIZE] = { '\0' };
+    char tok[20][INPUT_SIZE] = { { '\0' } };
     int i = 0;
     bool createFlag = false, quitFlag = false;
 
