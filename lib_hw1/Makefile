@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS=-I.
 
 tester: list.o hash.o interface.o
-	$(CC) -g -Wall -o tester list.o interface.o
+	$(CC) -g -Wall -o $@ $^ $(CFLAGS)
 
 list.o: list.c list.h
 	$(CC) -g -Wall -c -o $@ $< $(CFLAGS)
