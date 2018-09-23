@@ -102,6 +102,8 @@ void create(char ds[], char para[][COMMAND_MAX_SIZE]){
   struct data_collect *dc;
   struct list *list;
   struct hash *hash;
+  struct bitmap *bitmap;
+  size_t bit_num;
 
   dc=(struct data_collect*)malloc(sizeof(struct data_collect));
 
@@ -125,8 +127,9 @@ void create(char ds[], char para[][COMMAND_MAX_SIZE]){
           break;
 
         case BITMAP:
-
-
+          bit_num = (size_t)strtol(para[1],NULL,10);
+          bitmap = bitmap_create(bit_num);
+          (dc->data).bitmap = bitmap;
           break;
       }
       break;
@@ -157,6 +160,7 @@ void delete(char para[][COMMAND_MAX_SIZE]){
   struct hash *hash;
   struct hash_iterator iter;
 
+  struct bitmap *bitmap;
   dc = find_data_collect(para[0]);
   ASSERT(dc!=NULL);
 
@@ -180,8 +184,9 @@ void delete(char para[][COMMAND_MAX_SIZE]){
       }
       break;
 
-    case BITMAP:
-
+    case BITMAP: 
+      bitmap = (dc->data).bitmap;
+      bitmap_destroy(bitmap);
       break;
   }
 
@@ -210,6 +215,9 @@ void dumpdata(char para[][COMMAND_MAX_SIZE]){
   struct hash *hash;
   struct hash_iterator iter;
   struct hash_elem *h_elem;
+
+  struct bitmap *bitmap;
+  int bit;
   dc = find_data_collect(para[0]);
   ASSERT(dc!=NULL);
   switch(dc->data_type){
@@ -236,6 +244,12 @@ void dumpdata(char para[][COMMAND_MAX_SIZE]){
       break;
 
     case BITMAP:
+      bitmap = (dc->data).bitmap;
+      if(bitmap_size(bitmap)==0) break;
+      for(bit = 0 ; bit<bitmap_size(bitmap); bit++){
+        printf("%d",bitmap_test(bitmap,bit));
+      }
+      printf("\n");
       break;
 
 
@@ -610,3 +624,7 @@ unsigned hash_int_func(const struct hash_elem *elem, void *aux){
   item = hash_entry(elem,struct hash_item, elem);
   return hash_int(item->data);
 }
+
+
+
+////////////// 
