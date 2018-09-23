@@ -74,6 +74,11 @@ struct hash_iterator
     struct hash_elem *elem;     /* Current hash element in current bucket. */
   };
 
+typedef struct {
+    struct hash_elem elem;
+    int data;
+} HASH_ITEM;
+
 /* Basic life cycle. */
 bool hash_init (struct hash *, hash_hash_func *, hash_less_func *, void *aux);
 void hash_clear (struct hash *, hash_action_func *);

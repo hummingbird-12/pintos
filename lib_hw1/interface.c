@@ -24,8 +24,13 @@ int listCount;
 void *hashFunc[] = {
     &hash_init, NULL,
     &hash_insert, &hash_replace, &hash_find, &hash_delete,
-    &hash_clear, &hash_size, &hash_empty, &hash_apply
+    &hash_clear, &hash_size, &hash_empty, &hash_apply,
+    &hash_int_2
 };
+struct HASH_ARRAY {
+    struct hash* hashLink;
+    char hashName[INPUT_SIZE];
+} hashArray[MAX_HASHTABLE];
 int hashCount;
 
 int main() {
@@ -60,6 +65,9 @@ int findTargetIndex(CMD_TYPE type, char *name) {
                     return index;
             break;
         case HASHTABLE:
+            for(index = 0; index < MAX_HASHTABLE; index++)
+                if(hashArray[index].hashLink && !strcmp(hashArray[index].hashName, name))
+                    return index;
             break;
         case BITMAP:
             break;
@@ -93,9 +101,9 @@ bool inputParser(char* input) {
     if(!strncmp(tok[0], "list_", 5) || (createFlag && !strcmp(tok[1], "list")))
         listCommand(tok, createFlag);
     else if(!strncmp(tok[0], "hash_", 5) || (createFlag && !strcmp(tok[1], "hash")))
-        ;
+        hashCommand(tok, createFlag);
     else if(!strncmp(tok[0], "bitmap_", 7) || (createFlag && !strcmp(tok[1], "bitmap")))
-        ;
+        debugDump("NOT YET!");
     else if(!strcmp(tok[0], "dumpdata") && tok[1][0] != '\0')
         dataDumper(tok[1]);
     else if(!strcmp(tok[0], "delete"))
@@ -157,6 +165,7 @@ void dataDestroyer(char* name) {
                 free(list_entry(it1, LIST_ITEM, elem));
                 it1 = it2;
             }
+            free(listArray[index].listLink);
             listArray[index].listLink = NULL;
             listCount--;
             memset(listArray[index].listName, '\0', INPUT_SIZE);
@@ -318,4 +327,68 @@ struct list_elem* listSearchByIndex(struct list* list, int index) {
         if(i == index)
             return it;
     return NULL;
+}
+
+void hashCommand(char tok[][INPUT_SIZE], bool createFlag) {
+    char funcList[][INPUT_SIZE] = {
+        "create", "destroy",
+        "insert", "replace", "find", "delete",
+        "clear", "size", "empty", "apply",
+        "int_2"
+    };
+    char funcName[INPUT_SIZE] = { '\0' };
+    HASH_FUNC funcNum;
+    int index;
+
+    HASH_ITEM *hashItem = NULL;
+    struct hash_elem *elem1, *elem2, *elem3;
+
+    if(createFlag) {
+        funcNum = H_CREATE;
+        assert(tok[2][0] != '\0');
+        assert(tok[3][0] == '\0');
+        assert(hashCount >= 0 && hashCount <= 10);
+
+        for(index = 0; hashArray[index].hashLink && index < MAX_HASHTABLE; index++);
+
+        strcpy(hashArray[index].hashName, tok[2]);
+        hashArray[index].hashLink = (struct hash*) malloc(sizeof(struct hash));
+        hashCount++;
+    }
+    else {
+        strcpy(funcName, tok[0] + 5);
+        index = findTargetIndex(HASHTABLE, tok[1]);
+        for(funcNum = H_INSERT; strcmp(funcName, funcList[funcNum]) && funcNum <= H_INT_2; funcNum++);
+    }
+
+    assert(index != -1);
+    assert(index < MAX_HASHTABLE);
+    struct hash* targetHash = hashArray[index].hashLink;
+    struct hash* targetHash2;
+
+    switch(funcNum) {
+        case H_CREATE:
+            break;
+        case H_INSERT:
+            break;
+        case H_REPLACE:
+            break;
+        case H_FIND:
+            break;
+        case H_DELETE:
+            break;
+        case H_CLEAR:
+            break;
+        case H_SIZE:
+            break;
+        case H_EMPTY:
+            break;
+        case H_APPLY:
+            break;
+        case H_INT_2:
+            break;
+        default:
+            errorDump("Unkown hash table command");
+            break;
+    }
 }

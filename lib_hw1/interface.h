@@ -10,8 +10,8 @@
 
 #define INPUT_SIZE 101
 #define ERROR_CODE -1
-#define errorDump(X); printf("[ERROR] %s.\n", X);
-#define debugDump(X); printf("[DEBUG] %s.\n", X);
+#define errorDump(X) printf("[ERROR] %s.\n", X)
+#define debugDump(X) printf("[DEBUG] %s.\n", X)
 
 typedef enum {
     ERROR = -1, NONE, LIST, HASHTABLE, BITMAP
@@ -53,3 +53,4 @@ void dataDumper(char*);
 void dataDestroyer(char*);
 
 void listCommand(char[][INPUT_SIZE], bool);
+void hashCommand(char[][INPUT_SIZE], bool);
