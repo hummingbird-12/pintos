@@ -384,7 +384,7 @@ void list_swap (struct list_elem *a, struct list_elem *b) {
 }
 
 void list_shuffle (struct list *list) {
-    int i, j;
+    int i;
     size_t size = list_size(list);
     struct list_elem *it1, *it2;
 

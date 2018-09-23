@@ -1,7 +1,7 @@
 #include "interface.h"
 //#include "bitmap.h"
 //#include "debug.h"
-//#include "hash.h"
+#include "hash.h"
 //#include "limits.h"
 #include "list.h"
 //#include "round.h"
@@ -20,6 +20,13 @@ struct LIST_ARRAY {
     char listName[INPUT_SIZE];
 } listArray[MAX_LIST];
 int listCount;
+
+void *hashFunc[] = {
+    &hash_init, NULL,
+    &hash_insert, &hash_replace, &hash_find, &hash_delete,
+    &hash_clear, &hash_size, &hash_empty, &hash_apply
+};
+int hashCount;
 
 int main() {
     char str[INPUT_SIZE];
@@ -40,7 +47,7 @@ void initializer() {
     listCount = 0;
     for(i = 0; i < MAX_LIST; i++) {
         listArray[i].listLink = NULL;
-        memset(listArray[i].listName, INPUT_SIZE, '\0');
+        memset(listArray[i].listName, '\0', INPUT_SIZE);
     }
 }
 
@@ -83,20 +90,20 @@ bool inputParser(char* input) {
         createFlag = true;
     }
 
-    if(!strncmp(tok[0], "list_", 5) || !strcmp(tok[1], "list"))
+    if(!strncmp(tok[0], "list_", 5) || (createFlag && !strcmp(tok[1], "list")))
         listCommand(tok, createFlag);
-    /*
-       if(!strcmp(cmd, "hash"))
-       return HASHTABLE;
-       if(!strcmp(cmd, "bitmap"))
-       return BITMAP;
-       */
-    if(!strcmp(tok[0], "dumpdata") && tok[1][0] != '\0')
+    else if(!strncmp(tok[0], "hash_", 5) || (createFlag && !strcmp(tok[1], "hash")))
+        ;
+    else if(!strncmp(tok[0], "bitmap_", 7) || (createFlag && !strcmp(tok[1], "bitmap")))
+        ;
+    else if(!strcmp(tok[0], "dumpdata") && tok[1][0] != '\0')
         dataDumper(tok[1]);
-    if(!strcmp(tok[0], "delete"))
+    else if(!strcmp(tok[0], "delete"))
         dataDestroyer(tok[1]);
-    if(!strcmp(tok[0], "quit"))
+    else if(!strcmp(tok[0], "quit"))
         quitFlag = true;
+    else
+        errorDump("Unkown interface command");
     return quitFlag;
 }
 
@@ -152,7 +159,7 @@ void dataDestroyer(char* name) {
             }
             listArray[index].listLink = NULL;
             listCount--;
-            memset(listArray[index].listName, INPUT_SIZE, '\0');
+            memset(listArray[index].listName, '\0', INPUT_SIZE);
             break;
         case HASHTABLE:
         case BITMAP:
@@ -174,10 +181,10 @@ void listCommand(char tok[][INPUT_SIZE], bool createFlag) {
     };
     char funcName[INPUT_SIZE] = { '\0' };
     LIST_FUNC funcNum;
-    int index, i;
+    int index;
 
     LIST_ITEM *listItem = NULL;
-    struct list_elem *elem0, *elem1, *elem2, *elem3;
+    struct list_elem *elem1, *elem2, *elem3;
 
     if(createFlag) {
         funcNum = L_CREATE;
