@@ -105,5 +105,12 @@ unsigned hash_bytes (const void *, size_t);
 unsigned hash_string (const char *);
 unsigned hash_int (int);
 unsigned hash_int_2 (int);
+unsigned hasher(struct hash_elem*, void*);
+
+bool hash_compare(struct hash_elem*, struct hash_elem*, void*);
+
+void hash_destruct(struct hash_elem*, void*);
+void hash_square(struct hash_elem*, void*);
+void hash_triple(struct hash_elem*, void*);
 
 #endif /* lib/kernel/hash.h */

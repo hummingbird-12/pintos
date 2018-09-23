@@ -54,6 +54,12 @@ void initializer() {
         listArray[i].listLink = NULL;
         memset(listArray[i].listName, '\0', INPUT_SIZE);
     }
+
+    hashCount = 0;
+    for(i = 0; i < MAX_HASHTABLE; i++) {
+        hashArray[i].hashLink = NULL;
+        memset(hashArray[i].hashName, '\0', INPUT_SIZE);
+    }
 }
 
 int findTargetIndex(CMD_TYPE type, char *name) {
@@ -100,7 +106,7 @@ bool inputParser(char* input) {
 
     if(!strncmp(tok[0], "list_", 5) || (createFlag && !strcmp(tok[1], "list")))
         listCommand(tok, createFlag);
-    else if(!strncmp(tok[0], "hash_", 5) || (createFlag && !strcmp(tok[1], "hash")))
+    else if(!strncmp(tok[0], "hash_", 5) || (createFlag && !strcmp(tok[1], "hashtable")))
         hashCommand(tok, createFlag);
     else if(!strncmp(tok[0], "bitmap_", 7) || (createFlag && !strcmp(tok[1], "bitmap")))
         debugDump("NOT YET!");
@@ -118,7 +124,8 @@ bool inputParser(char* input) {
 void dataDumper(char* name) {
     CMD_TYPE type = LIST;
     int index;
-    struct list_elem *it;
+    struct list_elem *listIt;
+    struct hash_iterator hashIt;
 
     while((index = findTargetIndex(type, name)) == -1) {
         if(type < BITMAP)
@@ -129,15 +136,21 @@ void dataDumper(char* name) {
     
     switch(type) {
         case LIST:
-            for(it = list_begin(listArray[index].listLink);
-                    it != list_end(listArray[index].listLink);
-                    it = list_next(it)) {
-                printf("%d ", list_entry(it, LIST_ITEM, elem)->data);
+            for(listIt = list_begin(listArray[index].listLink);
+                    listIt != list_end(listArray[index].listLink);
+                    listIt = list_next(listIt)) {
+                printf("%d ", list_entry(listIt, LIST_ITEM, elem)->data);
             }
             if(!list_empty(listArray[index].listLink))
                 puts("");
             break;
         case HASHTABLE:
+            hash_first(&hashIt, hashArray[index].hashLink);
+            while(hash_next(&hashIt))
+                printf("%d ", hash_entry(hash_cur(&hashIt), HASH_ITEM, elem)->data);
+            if(!hash_empty(hashArray[index].hashLink))
+                puts("");
+            break;
         case BITMAP:
             break;
         default:
@@ -148,7 +161,8 @@ void dataDumper(char* name) {
 void dataDestroyer(char* name) {
     CMD_TYPE type = LIST;
     int index;
-    struct list_elem *it1, *it2;
+    struct list_elem *listIt1, *listIt2;
+    struct hash_iterator hashIt1, hashIt2;
 
     while((index = findTargetIndex(type, name)) == -1) {
         if(type < BITMAP)
@@ -159,11 +173,11 @@ void dataDestroyer(char* name) {
     
     switch(type) {
         case LIST:
-            for(it1 = list_begin(listArray[index].listLink);
-                    it1 != list_end(listArray[index].listLink);) {
-                it2 = list_next(it1);
-                free(list_entry(it1, LIST_ITEM, elem));
-                it1 = it2;
+            for(listIt1 = list_begin(listArray[index].listLink);
+                    listIt1 != list_end(listArray[index].listLink);) {
+                listIt2 = list_next(listIt1);
+                free(list_entry(listIt1, LIST_ITEM, elem));
+                listIt1 = listIt2;
             }
             free(listArray[index].listLink);
             listArray[index].listLink = NULL;
@@ -171,6 +185,19 @@ void dataDestroyer(char* name) {
             memset(listArray[index].listName, '\0', INPUT_SIZE);
             break;
         case HASHTABLE:
+            hash_first(&hashIt1, hashArray[index].hashLink);
+            while(1) {
+                if(!hash_next(&hashIt1))
+                    break;
+                hashIt2 = hashIt1;
+                free(hash_entry(hash_cur(&hashIt1), HASH_ITEM, elem));
+                hashIt1 = hashIt2;
+            }
+            free(hashArray[index].hashLink);
+            hashArray[index].hashLink = NULL;
+            hashCount--;
+            memset(hashArray[index].hashName, '\0', INPUT_SIZE);
+            break;
         case BITMAP:
             break;
         default:
@@ -341,7 +368,7 @@ void hashCommand(char tok[][INPUT_SIZE], bool createFlag) {
     int index;
 
     HASH_ITEM *hashItem = NULL;
-    struct hash_elem *elem1, *elem2, *elem3;
+    struct hash_elem *elem1;
 
     if(createFlag) {
         funcNum = H_CREATE;
@@ -364,28 +391,55 @@ void hashCommand(char tok[][INPUT_SIZE], bool createFlag) {
     assert(index != -1);
     assert(index < MAX_HASHTABLE);
     struct hash* targetHash = hashArray[index].hashLink;
-    struct hash* targetHash2;
 
     switch(funcNum) {
+        // return type is bool
         case H_CREATE:
-            break;
-        case H_INSERT:
-            break;
-        case H_REPLACE:
-            break;
-        case H_FIND:
-            break;
-        case H_DELETE:
-            break;
-        case H_CLEAR:
-            break;
-        case H_SIZE:
+            ((bool(*)(struct hash*, hash_hash_func*, hash_less_func*, void*)) hashFunc[funcNum]) (targetHash, (hash_hash_func*) hasher, (hash_less_func*) hash_compare, NULL);
             break;
         case H_EMPTY:
+            printf("%s\n", (((bool(*)(struct hash*)) hashFunc[funcNum]) (targetHash)) ? "true" : "false");
+            break;
+        // return type is struct hash_elem*
+        case H_INSERT:
+            hashItem = (HASH_ITEM*) malloc(sizeof(HASH_ITEM));
+            hashItem->data = strtol(tok[2], NULL, 10);
+
+            ((struct hash_elem*(*)(struct hash*, struct hash_elem*)) hashFunc[funcNum]) (targetHash, &(hashItem->elem));
+            break;
+        case H_REPLACE:
+        case H_DELETE:
+            hashItem = (HASH_ITEM*) malloc(sizeof(HASH_ITEM));
+            hashItem->data = strtol(tok[2], NULL, 10);
+
+            elem1 = ((struct hash_elem*(*)(struct hash*, struct hash_elem*)) hashFunc[funcNum]) (targetHash, &(hashItem->elem));
+            if(elem1)
+                free(hash_entry(elem1, HASH_ITEM, elem));
+            if(funcNum == H_DELETE)
+                free(hashItem);
+            break;
+        case H_FIND:
+            hashItem = (HASH_ITEM*) malloc(sizeof(HASH_ITEM));
+            hashItem->data = strtol(tok[2], NULL, 10);
+
+            elem1 = ((struct hash_elem*(*)(struct hash*, struct hash_elem*)) hashFunc[funcNum]) (targetHash, &(hashItem->elem));
+            if(elem1)
+                printf("%d\n", hashItem->data); //hash_entry(elem1, HASH_ITEM, elem)->data);
+            free(hashItem);
+            break;
+        // return type is void
+        case H_CLEAR:
+            ((void(*)(struct hash*, hash_action_func*)) hashFunc[funcNum]) (targetHash, (hash_action_func*) hash_destruct);
             break;
         case H_APPLY:
+            if(!strcmp(tok[2], "square"))
+                ((void(*)(struct hash*, hash_action_func*)) hashFunc[funcNum]) (targetHash, (hash_action_func*) hash_square);
+            else if(!strcmp(tok[2], "triple"))
+                ((void(*)(struct hash*, hash_action_func*)) hashFunc[funcNum]) (targetHash, (hash_action_func*) hash_triple);
             break;
-        case H_INT_2:
+        // return type is size_t
+        case H_SIZE:
+            printf("%zu\n", ((size_t(*)(struct hash*)) hashFunc[funcNum]) (targetHash));
             break;
         default:
             errorDump("Unkown hash table command");

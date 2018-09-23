@@ -304,10 +304,13 @@ hash_int (int i)
 }
 
 unsigned hash_int_2 (int i) {
-	i = ((i >> 16) ^ i) * 0x45d9f3b;
-    i = ((i >> 16) ^ i) * 0x45d9f3b;
-    i = (i >> 16) ^ i;
-    return i;
+    unsigned x = i;
+    x ^= x >> 16;
+    x *= (unsigned) 0x7feb352d;
+    x ^= x >> 15;
+    x *= (unsigned) 0x846ca68b;
+    x ^= x >> 16;
+    return x;
 }
 
 /* Returns the bucket in H that E belongs in. */
@@ -437,3 +440,32 @@ remove_elem (struct hash *h, struct hash_elem *e)
   list_remove (&e->list_elem);
 }
 
+unsigned hasher(struct hash_elem *e, void* aux) {
+    return hash_int(hash_entry(e, HASH_ITEM, elem)->data);
+}
+
+bool hash_compare(struct hash_elem* elemA, struct hash_elem* elemB, void* aux) {
+    HASH_ITEM *it1, *it2;
+    assert(elemA != NULL && elemB != NULL);
+    assert((it1 = hash_entry(elemA, HASH_ITEM, elem)));
+    assert((it2 = hash_entry(elemB, HASH_ITEM, elem)));
+
+    return it1->data < it2->data;
+}
+
+void hash_destruct(struct hash_elem *e, void *aux) {
+    assert(e != NULL);
+    free(hash_entry(e, HASH_ITEM, elem));
+}
+
+void hash_square(struct hash_elem *e, void *aux) {
+    assert(e != NULL);
+    int tmp = hash_entry(e, HASH_ITEM, elem)->data;
+    hash_entry(e, HASH_ITEM, elem)->data = tmp * tmp;
+}
+
+void hash_triple(struct hash_elem *e,void *aux){
+    assert(e != NULL);
+    int tmp = hash_entry(e, HASH_ITEM, elem)->data;
+    hash_entry(e, HASH_ITEM, elem)->data = tmp * tmp * tmp;
+}
