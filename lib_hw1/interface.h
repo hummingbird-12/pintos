@@ -54,3 +54,4 @@ void dataDestroyer(char*);
 
 void listCommand(char[][INPUT_SIZE], bool);
 void hashCommand(char[][INPUT_SIZE], bool);
+void bitmapCommand(char[][INPUT_SIZE], bool);

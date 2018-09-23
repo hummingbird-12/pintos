@@ -1,10 +1,8 @@
 #include "interface.h"
-//#include "bitmap.h"
+#include "bitmap.h"
 //#include "debug.h"
 #include "hash.h"
-//#include "limits.h"
 #include "list.h"
-//#include "round.h"
 
 void *listFunc[] = {
     &list_init, NULL,
@@ -33,6 +31,20 @@ struct HASH_ARRAY {
 } hashArray[MAX_HASHTABLE];
 int hashCount;
 
+void *bitmapFunc[] = {
+    &bitmap_create, NULL,
+	&bitmap_size, &bitmap_set, &bitmap_mark, &bitmap_reset, &bitmap_flip, &bitmap_test,
+    &bitmap_set_all, &bitmap_set_multiple, &bitmap_count, &bitmap_contains,
+    &bitmap_any, &bitmap_none, &bitmap_all,
+    &bitmap_scan, &bitmap_scan_and_flip, &bitmap_dump,
+    &bitmap_expand
+};
+struct BITMAP_ARRAY {
+    struct bitmap* bitmapLink;
+    char bitmapName[INPUT_SIZE];
+} bitmapArray[MAX_BITMAP];
+int bitmapCount;
+
 int main() {
     char str[INPUT_SIZE];
 
@@ -60,6 +72,12 @@ void initializer() {
         hashArray[i].hashLink = NULL;
         memset(hashArray[i].hashName, '\0', INPUT_SIZE);
     }
+
+    bitmapCount = 0;
+    for(i = 0; i < MAX_BITMAP; i++) {
+        bitmapArray[i].bitmapLink = NULL;
+        memset(bitmapArray[i].bitmapName, '\0', INPUT_SIZE);
+    }
 }
 
 int findTargetIndex(CMD_TYPE type, char *name) {
@@ -76,6 +94,9 @@ int findTargetIndex(CMD_TYPE type, char *name) {
                     return index;
             break;
         case BITMAP:
+            for(index = 0; index < MAX_BITMAP; index++)
+                if(bitmapArray[index].bitmapLink && !strcmp(bitmapArray[index].bitmapName, name))
+                    return index;
             break;
         default:
             break;
@@ -109,7 +130,7 @@ bool inputParser(char* input) {
     else if(!strncmp(tok[0], "hash_", 5) || (createFlag && !strcmp(tok[1], "hashtable")))
         hashCommand(tok, createFlag);
     else if(!strncmp(tok[0], "bitmap_", 7) || (createFlag && !strcmp(tok[1], "bitmap")))
-        debugDump("NOT YET!");
+        bitmapCommand(tok, createFlag);
     else if(!strcmp(tok[0], "dumpdata") && tok[1][0] != '\0')
         dataDumper(tok[1]);
     else if(!strcmp(tok[0], "delete"))
@@ -443,6 +464,74 @@ void hashCommand(char tok[][INPUT_SIZE], bool createFlag) {
             break;
         default:
             errorDump("Unkown hash table command");
+            break;
+    }
+}
+
+void bitmapCommand(char tok[][INPUT_SIZE], bool createFlag) {
+    char funcList[][INPUT_SIZE] = {
+        "create", "destroy",
+        "size", "set", "mark", "reset", "flip", "test",
+        "set_all", "set_multiple", "count", "contains",
+        "any", "none", "all",
+        "scan", "scan_and_flip", "dump",
+        "expand"
+    };
+    char funcName[INPUT_SIZE] = { '\0' };
+    BITMAP_FUNC funcNum;
+    int index;
+
+    /*
+    HASH_ITEM *hashItem = NULL;
+    struct hash_elem *elem1;
+    */
+    struct bitmap* elem1;
+    size_t size;
+
+    if(createFlag) {
+        funcNum = B_CREATE;
+        assert(tok[2][0] != '\0');
+        assert(tok[3][0] != '\0');
+        assert(bitmapCount >= 0 && bitmapCount <= 10);
+
+        for(index = 0; bitmapArray[index].bitmapLink && index < MAX_BITMAP; index++);
+        strcpy(bitmapArray[index].bitmapName, tok[2]);
+        hashCount++;
+    }
+    else {
+        strcpy(funcName, tok[0] + 5);
+        index = findTargetIndex(BITMAP, tok[1]);
+        for(funcNum = H_SIZE; strcmp(funcName, funcList[funcNum]) && funcNum <= B_EXPAND; funcNum++);
+    }
+
+    assert(index != -1);
+    assert(index < MAX_BITMAP);
+    struct bitmap* targetBitmap = bitmapArray[index].bitmapLink;
+
+    switch(funcNum) {
+        // return type is struct bitmap*
+        case B_CREATE:break;
+        case B_EXPAND:break;
+        // return type is size_t
+        case B_SIZE:break;
+        case B_COUNT:break;
+        case B_SCAN:break;
+        case B_SCAN_AND_FLIP:break;
+        // return type is void
+        case B_SET:break;
+        case B_MARK:break;
+        case B_RESET:break;
+        case B_FLIP:break;
+        case B_SET_ALL:break;
+        case B_SET_MULTIPLE:break;
+        case B_DUMP:break;
+        // return type is bool
+        case B_TEST:break;
+        case B_CONTAINS:break;
+        case B_ANY:break;
+        case B_NONE:break;
+        case B_ALL:break;
+        default:
             break;
     }
 }
