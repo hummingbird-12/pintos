@@ -5,9 +5,9 @@
 #include "list.h"
 #define COMMAND_MAX_SIZE 100
 #define PARA_SIZE 5
-#define LIST_NUM 19
+#define LIST_NUM 20
 #define HASH_NUM 8
-#define BITMAP_NUM 13
+#define BITMAP_NUM 18
 #define ETC_NUM 7
 #define DS_NUM 3
 
@@ -48,10 +48,11 @@ char str_cmd_hash[][20]={
   "hash_clear", "hash_size", "hash_empty", "hash_apply" 
 };
 
-char str_cmd_bitmap[][20]={
+char str_cmd_bitmap[][30]={
   "bitmap_size", "bitmap_set", "bitmap_mark", "bitmap_reset", "bitmap_flip", "bitmap_test",
   "bitmap_set_all", "bitmap_set_multiple", "bitmap_count", "bitmap_contains",
-  "bitmap_any", "bitmap_none", "bitmap_all"
+  "bitmap_any", "bitmap_none", "bitmap_all",
+  "bitmap_dump","bitmap_scan_and_flip", "bitmap_scan", "bitmap_expand"
 };
 
 char str_cmd_etc[][20]={
@@ -80,7 +81,8 @@ enum _CMD_HASH{
 enum _CMD_BITMAP{
   BITMAP_SIZE, BITMAP_SET, BITMAP_MARK, BITMAP_RESET, BITMAP_FLIP, BITMAP_TEST,
   BITMAP_SET_ALL, BITMAP_SET_MULTIPLE, BITMAP_COUNT, BITMAP_CONTAINS,
-  BITMAP_ANY, BITMAP_NONE, BITMAP_ALL
+  BITMAP_ANY, BITMAP_NONE, BITMAP_ALL,
+  BITMAP_DUMP, BITMAP_SCAN_AND_FLIP, BITMAP_SCAN, BITMAP_EXPAND
 };
 
 enum _CMD_ETC{
@@ -120,3 +122,12 @@ unsigned hash_int_func(const struct hash_elem *elem, void *aux);
 void hash_destructor(struct hash_elem *elem, void *aux);
 void hash_triple(struct hash_elem *elem, void *aux);
 void hash_square(struct hash_elem *elem, void *aux);
+
+
+//bitmap
+
+void bitmap_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE]);
+
+
+
+

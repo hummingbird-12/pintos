@@ -73,6 +73,12 @@ int command_process(char command[], char ds[], char para[][COMMAND_MAX_SIZE]){
       hash_process(i, ds, para);
       return 0;
     }
+
+  for(i=0; i<BITMAP_NUM ; i++)
+    if(!strcmp(str_cmd_bitmap[i], command)){
+      bitmap_process(i, ds, para);
+      return 0;
+    }
   ASSERT(1);
 }
 /////////////////////////////// ETC ///////////////////////////////////
@@ -251,8 +257,6 @@ void dumpdata(char para[][COMMAND_MAX_SIZE]){
       }
       printf("\n");
       break;
-
-
   }
 }
 
@@ -627,4 +631,95 @@ unsigned hash_int_func(const struct hash_elem *elem, void *aux){
 
 
 
-////////////// 
+////////////// bitmap ///////////////////
+
+void bitmap_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE]){
+  struct data_collect* dc;
+  struct bitmap* bitmap;
+  int bit; 
+  dc = find_data_collect(ds);
+  ASSERT(dc != NULL);
+  bitmap = (dc->data).bitmap;
+  //printf("::%d %d\n",cmd,)
+  switch(cmd){
+    case BITMAP_SIZE:
+      printf("%zu\n",bitmap_size(bitmap));
+      break;
+    case BITMAP_SET:
+      bitmap_set(bitmap,(size_t)strtol(para[0],NULL,10),!strcmp("true",para[1]));
+      break;
+    case BITMAP_MARK:
+      bitmap_mark(bitmap,(size_t)strtol(para[0],NULL,10));
+      break;
+    case BITMAP_RESET:
+      bitmap_reset(bitmap,(size_t)strtol(para[0],NULL,10));
+      break;
+    case BITMAP_FLIP:
+      bitmap_flip(bitmap,(size_t)strtol(para[0],NULL,10));
+      break;
+    case BITMAP_TEST:
+      if( bitmap_test(bitmap,(size_t)strtol(para[0],NULL,10)) )
+        printf("true\n");
+      else printf("false\n");
+      break;
+    case BITMAP_SET_ALL:
+      bitmap_set_all(bitmap,!strcmp(para[0],"true"));
+      break;
+
+    case BITMAP_SET_MULTIPLE:
+      bitmap_set_multiple(bitmap,(size_t)strtol(para[0],NULL,10) ,(size_t)strtol(para[1],NULL,10),!strcmp(para[2],"true"));
+      break;
+
+    case BITMAP_COUNT:
+      printf("%zu\n",bitmap_count(bitmap,(size_t)strtol(para[0],NULL,10) ,(size_t)strtol(para[1],NULL,10),!strcmp(para[2],"true")));
+      break;
+
+    case BITMAP_CONTAINS:
+      if(bitmap_contains( bitmap, (size_t)strtol(para[0],NULL,10) ,(size_t)strtol(para[1],NULL,10),!strcmp(para[2],"true")))
+        printf("true\n");
+      else
+        printf("false\n");
+      break;
+
+    case BITMAP_ANY:
+      if( bitmap_any(bitmap,(size_t)strtol(para[0],NULL,10),(size_t)strtol(para[1],NULL,10)) )
+        printf("true\n");
+      else 
+        printf("false\n");
+      break;
+    case BITMAP_NONE:
+      if( bitmap_none(bitmap,(size_t)strtol(para[0],NULL,10),(size_t)strtol(para[1],NULL,10)) )
+        printf("true\n");
+      else 
+        printf("false\n");
+      break;
+
+    case BITMAP_ALL:
+      if( bitmap_all(bitmap,(size_t)strtol(para[0],NULL,10),(size_t)strtol(para[1],NULL,10)) )
+        printf("true\n");
+      else 
+        printf("false\n");
+      break;
+
+    case BITMAP_DUMP:
+      bitmap_dump(bitmap);
+      break;
+
+
+
+    case BITMAP_SCAN_AND_FLIP:
+      printf("%u\n", bitmap_scan_and_flip(bitmap, (size_t)strtol(para[0],NULL,10) ,(size_t)strtol(para[1],NULL,10), !strcmp(para[2],"true")) );
+      break;
+
+    case BITMAP_SCAN:
+      printf("%u\n", bitmap_scan(bitmap,(size_t)strtol(para[0],NULL,10) ,(size_t)strtol(para[1],NULL,10), !strcmp(para[2],"true")) );
+      break;
+
+
+
+    case BITMAP_EXPAND:
+      bitmap_expand(bitmap,(size_t)strtol(para[0],NULL,10)); 
+      break;
+
+  }
+}

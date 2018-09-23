@@ -434,6 +434,7 @@ unsigned hash_int_2(int i){
   unsigned hash = 331;
   int cnt=0;
 
+  if(i<0) i*=-1;
   while(cnt++ <= i){
     hash = ((hash<<5) + hash) + cnt;
   }

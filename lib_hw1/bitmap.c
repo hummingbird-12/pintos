@@ -39,7 +39,7 @@ struct bitmap *bitmap_expand(struct bitmap *bitmap, int size){
   
  // ASSERT (size <= bitmap->bit_cnt);
   bitmap->bit_cnt = bitmap->bit_cnt+size;
-  bitmap->bits = realloc(bitmap->bits, sizeof(bitmap->bits)*size);
+  bitmap->bits = realloc(bitmap->bits, sizeof(bitmap->bits)*bitmap->bit_cnt);
   return bitmap;
 }
 
@@ -191,7 +191,7 @@ bitmap_reset (struct bitmap *b, size_t bit_idx)
   /* This is equivalent to `b->bits[idx] &= ~mask' except that it
      is guaranteed to be atomic on a uniprocessor machine.  See
      the description of the AND instruction in [IA32-v2a]. */
-  asm ("andl %1, %0" : "=m" (b->bits[idx]) : "r" (~mask) : "cc");
+  asm ("andl %k1, %k0" : "=m" (b->bits[idx]) : "r" (~mask) : "cc");
 }
 
 /* Atomically toggles the bit numbered IDX in B;
@@ -206,7 +206,7 @@ bitmap_flip (struct bitmap *b, size_t bit_idx)
   /* This is equivalent to `b->bits[idx] ^= mask' except that it
      is guaranteed to be atomic on a uniprocessor machine.  See
      the description of the XOR instruction in [IA32-v2b]. */
-  asm ("xorl %1, %0" : "=m" (b->bits[idx]) : "r" (mask) : "cc");
+  asm ("xorl %k1, %k0" : "=m" (b->bits[idx]) : "r" (mask) : "cc");
 }
 
 /* Returns the value of the bit numbered IDX in B. */
@@ -371,7 +371,7 @@ bitmap_read (struct bitmap *b, struct file *file)
 bool
 bitmap_write (const struct bitmap *b, struct file *file)
 {
-  off_t size = byte_cnt (b->bit_cnt);
+  off_t size = byte_cnt (b->bit_cnt)/2;
   return file_write_at (file, b->bits, size, 0) == size;
 }
 #endif /* FILESYS */
@@ -382,6 +382,6 @@ bitmap_write (const struct bitmap *b, struct file *file)
 void
 bitmap_dump (const struct bitmap *b) 
 {
-  hex_dump (0, b->bits, byte_cnt (b->bit_cnt), false);
+  hex_dump (0, b->bits, byte_cnt (b->bit_cnt)/2, false);
 }
 
