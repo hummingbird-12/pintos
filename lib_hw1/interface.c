@@ -240,7 +240,7 @@ void listCommand(char tok[][INPUT_SIZE], bool createFlag) {
             break;
         case L_INSERT_ORDERED:
             listItem = (LIST_ITEM*) malloc(sizeof(LIST_ITEM));
-            listItem->data = strtol(tok[3], NULL, 10);
+            listItem->data = strtol(tok[2], NULL, 10);
 
             ((void(*)(struct list*, struct list_elem*, list_less_func*, void*)) listFunc[funcNum]) (targetList, &(listItem->elem), (list_less_func*) elem_compare, NULL);
             break;
