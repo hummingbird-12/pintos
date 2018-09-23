@@ -221,8 +221,10 @@ void listCommand(char tok[][INPUT_SIZE], bool createFlag) {
             break;
         case L_SPLICE:
             elem1 = listSearchByIndex(targetList, strtol(tok[2], NULL, 10));
-            elem2 = listSearchByIndex(targetList, strtol(tok[3], NULL, 10));
-            elem3 = listSearchByIndex(targetList, strtol(tok[4], NULL, 10));
+
+            targetList2 = listArray[findTargetIndex(LIST, tok[3])].listLink;
+            elem2 = listSearchByIndex(targetList2, strtol(tok[4], NULL, 10));
+            elem3 = listSearchByIndex(targetList2, strtol(tok[5], NULL, 10));
 
             assert(elem1 != NULL && elem2 != NULL && elem3 != NULL);
 
