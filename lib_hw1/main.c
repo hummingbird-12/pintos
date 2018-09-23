@@ -125,6 +125,7 @@ void create(char ds[], char para[][COMMAND_MAX_SIZE]){
           break;
 
         case BITMAP:
+          
 
           break;
       }
@@ -149,14 +150,19 @@ void create(char ds[], char para[][COMMAND_MAX_SIZE]){
 
 void delete(char para[][COMMAND_MAX_SIZE]){
   struct data_collect *dc, *bef_dc;
+
   struct list *list;
   struct list_elem *elem, *del_elem;
+
+  struct hash *hash;
+  struct hash_iterator iter;
   
   dc = find_data_collect(para[0]);
   ASSERT(dc!=NULL);
  
   switch(dc->data_type){
     case LIST:
+      list = (dc->data).list;
       for(elem = list_begin(list) ; elem != list_end(list);){
         del_elem = elem;
         if(elem != list_end(list))
@@ -166,11 +172,16 @@ void delete(char para[][COMMAND_MAX_SIZE]){
       }
       break;
     case HASHTABLE:
-     
+      hash = (dc->data).hash;
+      hash_first(&iter, hash);
+
+      while(hash_next(&iter)){
+        hash_delete(hash, hash_cur(&iter));
+      }
       break;
 
     case BITMAP:
-
+      
       break;
   }
 
@@ -195,7 +206,10 @@ void dumpdata(char para[][COMMAND_MAX_SIZE]){
   struct data_collect *dc;
   struct list *list;
   struct list_elem *elem;
-  
+ 
+  struct hash *hash;
+  struct hash_iterator iter;
+  struct hash_elem *h_elem;
   dc = find_data_collect(para[0]);
   ASSERT(dc!=NULL);
   switch(dc->data_type){
@@ -211,7 +225,14 @@ void dumpdata(char para[][COMMAND_MAX_SIZE]){
       break;
 
     case HASHTABLE:
-      
+      hash = (dc->data).hash;
+      if(hash_empty(hash))  return;
+
+      hash_first(&iter, hash);
+      while(hash_next(&iter)){ 
+        printf("%d ",hash_entry( hash_cur(&iter) , struct hash_item, elem)->data);
+      }
+      printf("\n");
       break;
 
     case BITMAP:
@@ -430,6 +451,7 @@ void list_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE] ){
       elem = list_min(list,list_less,NULL);
       printf("%d\n",(list_entry(elem,struct list_item, elem) )->data);
       break;
+
     case LIST_SWAP:
 
       dc = find_data_collect(ds);
@@ -472,6 +494,50 @@ static bool list_less(const struct list_elem *a,const struct list_elem *b,void *
 ////////// HASH ///////////////
 
 void hash_process(int cmd,char ds[], char para[][COMMAND_MAX_SIZE]){
+  struct data_collect *dc;
+  struct hash* hash;
+  struct hash_iterator iter;
+  struct hash_elem* elem;
+  struct hash_item* item;  
+  dc = find_data_collect(ds);
+  ASSERT(dc != NULL);
+
+  switch(cmd){
+    case HASH_INSERT:
+
+      item = (struct hash_item*)malloc(sizeof(struct hash_item));
+      item->data = strtol(para[0],NULL,10);
+      hash_insert(hash,&(item->elem));
+
+      break;
+
+
+    break;
+
+    case HASH_REPLACE:
+    break;
+
+    case HASH_FIND:
+    break;
+
+    case HASH_DELETE:
+
+    break;
+
+    case HASH_CLEAR:
+    break;
+
+    case HASH_SIZE:
+    break;
+
+    case HASH_EMPTY:
+    break;
+
+    case HASH_APPLY:
+    break;
+
+  }
+
 
 }
 
@@ -484,12 +550,15 @@ bool hash_less(const struct hash_elem *a, const struct hash_elem *b, void *aux){
 
 
 }
-
 unsigned hash_int_2_func(const struct hash_elem *elem, void *aux){
   struct hash_item *item;
 
   item = hash_entry(elem,struct hash_item, elem);
   return hash_int_2(item->data);
 }
+void hash_destruct(const struct hash_elem *a,void *aux){
+  struct hash_item *elem;
 
-
+  elem = hash_entry(a, struct hash_item, elem);
+  elem = NULL;
+}
