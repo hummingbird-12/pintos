@@ -67,7 +67,12 @@ int command_process(char command[], char ds[], char para[][COMMAND_MAX_SIZE]){
       list_process(i,ds,para);
       return 0;
     }
- 
+
+  for(i=0; i<HASH_NUM ; i++)
+    if(!strcmp(str_cmd_hash[i], command)){
+      hash_process(i, ds, para);
+      return 0;
+    }
   ASSERT(1);
 }
 /////////////////////////////// ETC ///////////////////////////////////
@@ -116,7 +121,7 @@ void create(char ds[], char para[][COMMAND_MAX_SIZE]){
         case HASHTABLE:
           hash=(struct hash*)malloc(sizeof(struct hash));
           (dc->data).hash = hash;
-         // hash_init(hash, 0,hash_int_2,hash,NULL);
+          hash_init(hash, hash_int_2_func,hash_less,NULL);
           break;
 
         case BITMAP:
@@ -161,7 +166,7 @@ void delete(char para[][COMMAND_MAX_SIZE]){
       }
       break;
     case HASHTABLE:
-
+     
       break;
 
     case BITMAP:
@@ -461,3 +466,30 @@ static bool list_less(const struct list_elem *a,const struct list_elem *b,void *
     return false;
 
 }
+
+
+
+////////// HASH ///////////////
+
+void hash_process(int cmd,char ds[], char para[][COMMAND_MAX_SIZE]){
+
+}
+
+bool hash_less(const struct hash_elem *a, const struct hash_elem *b, void *aux){
+
+  if(hash_entry(a,struct hash_item, elem)->data < hash_entry(b,struct hash_item, elem)->data) 
+    return true;
+  else
+    return false;
+
+
+}
+
+unsigned hash_int_2_func(const struct hash_elem *elem, void *aux){
+  struct hash_item *item;
+
+  item = hash_entry(elem,struct hash_item, elem);
+  return hash_int_2(item->data);
+}
+
+

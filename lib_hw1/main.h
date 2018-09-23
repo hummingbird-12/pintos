@@ -29,6 +29,11 @@ struct list_item{
   int data;
 };
 
+struct hash_item{ 
+  struct hash_elem elem;
+  int data;
+};
+
 char str_cmd_list[][20] = {
   "list_insert", "list_splice", "list_push_front", "list_push_back",
   "list_remove", "list_pop_front", "list_pop_back", "list_front", "list_back", 
@@ -105,3 +110,8 @@ void list_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE]);
 
 
 
+
+//hash
+void hash_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE]);
+bool hash_less(const struct hash_elem *a, const struct hash_elem *b, void *aux);
+unsigned hash_int_2_func(const struct hash_elem *elem, void *aux);
