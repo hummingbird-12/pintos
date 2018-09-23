@@ -5,10 +5,11 @@
 #include "list.h"
 #define COMMAND_MAX_SIZE 100
 #define PARA_SIZE 5
-#define LIST_NUM 17
+#define LIST_NUM 19
 #define HASH_NUM 8
 #define BITMAP_NUM 13
 #define ETC_NUM 7
+#define DS_NUM 3
 
 struct data_collect{
   char name[COMMAND_MAX_SIZE];
@@ -33,7 +34,8 @@ char str_cmd_list[][20] = {
   "list_remove", "list_pop_front", "list_pop_back", "list_front", "list_back", 
   "list_size", "list_empty",
   "list_reverse", "list_sort", "list_insert_ordered", "list_unique",
-  "list_max", "list_min"
+  "list_max", "list_min",
+  "list_swap", "list_shuffle"
 };
 
 char str_cmd_hash[][20]={
@@ -61,7 +63,8 @@ enum _CMD_LIST{
   LIST_REMOVE, LIST_POP_FRONT, LIST_POP_BACK, LIST_FRONT, LIST_BACK,
   LIST_SIZE, LIST_EMPTY,
   LIST_REVERSE, LIST_SORT, LIST_INSERT_ORDERED, LIST_UNIQUE,
-  LIST_MAX, LIST_MIN
+  LIST_MAX, LIST_MIN,
+  LIST_SWAP, LIST_SHUFFLE
 };
 
 enum _CMD_HASH{

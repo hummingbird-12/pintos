@@ -531,6 +531,7 @@ list_min (struct list *list, list_less_func *less, void *aux)
     }
   return min;
 }
+  
 
 
 void list_swap(struct list_elem *a, struct list_elem *b){
@@ -559,11 +560,12 @@ void list_shuffle(struct list *list){
 
   srand((unsigned)time(&t));
 
-  for( i=list_begin(list) ; i!=list_next(list_end(list)) ; i=list_next(i) )
-    for( j=list_begin(list) ; j!=list_next(list_end(list)) ; j=list_next(j) )
+  for( i=list_begin(list) ; i!=list_end(list) ; i=list_next(i) ){
+    for( j=list_begin(list) ; j!=list_end(list) ; j=list_next(j) ){
       if(rand()%2){
         list_swap(i,j);
       }
-}    
-  
+    }
+  }    
+}
 

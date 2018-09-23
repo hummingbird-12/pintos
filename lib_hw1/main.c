@@ -3,14 +3,6 @@
 #include <assert.h>
 #include "main.h"
 
-#define COMMAND_MAX_SIZE 100
-#define PARA_SIZE 5
-#define LIST_NUM 17
-#define HASH_NUM 8
-#define BITMAP_NUM 13
-#define ETC_NUM 7
-#define DS_NUM 3
-
 #define ASSERT(CONDITION) assert(CONDITION)
 
 int main(){  
@@ -205,7 +197,6 @@ void dumpdata(char para[][COMMAND_MAX_SIZE]){
     case LIST:
       list=(dc->data).list;
       if(list_empty(list)){
-        printf("EMPTY\n");
         return;
       }
       for(elem = list_begin(list) ; elem != list_end(list); elem = list_next(elem)){
@@ -315,31 +306,158 @@ void list_process(int cmd, char ds[], char para[][COMMAND_MAX_SIZE] ){
       break;
 
     case LIST_REMOVE:
+      dc = find_data_collect(ds);
+      ASSERT(dc != NULL);
+      
+      cnt = 0;
+      idx1 = strtol(para[0], NULL , 10);
+
+      list = (dc->data).list;
+      for(elem = list_begin(list) ; elem != list_end(list) ; ){
+        if(cnt == idx1)
+          break;
+        elem = list_next(elem);
+        cnt++;
+      }
+      list_remove(elem);
       break;
     case LIST_POP_FRONT:
+      dc = find_data_collect(ds);
+      ASSERT(dc != NULL);
+      
+      list = (dc->data).list;
+      list_pop_front(list);
       break;
     case LIST_POP_BACK:
+
+      dc = find_data_collect(ds);
+      ASSERT(dc != NULL);
+      
+      list = (dc->data).list;
+      list_pop_back(list);
       break;
     case LIST_FRONT:
+      dc = find_data_collect(ds);
+      ASSERT(dc != NULL);
+      
+      list = (dc->data).list;
+      elem = list_front(list);
+      printf("%d\n",(list_entry(elem,struct list_item, elem) )->data);
+
       break;
-    case LIST_BACK:
+    case LIST_BACK:   
+      dc = find_data_collect(ds);
+      ASSERT(dc != NULL);
+      
+      list = (dc->data).list;
+      elem = list_back(list);
+      printf("%d\n",(list_entry(elem,struct list_item, elem) )->data);
+
+
       break;
-    case LIST_SIZE:
+    case LIST_SIZE:  
+      dc = find_data_collect(ds);
+      ASSERT(dc != NULL);
+      
+      list = (dc->data).list;
+      printf("%zu\n",list_size(list));
       break;
     case LIST_EMPTY:
+      dc = find_data_collect(ds);
+      ASSERT(dc != NULL);
+      
+      list = (dc->data).list;
+      if(list_empty(list)==true) printf("true\n");
+      else printf("false\n");
+
       break;
     case LIST_REVERSE:
+      dc = find_data_collect(ds);
+      ASSERT(dc != NULL);
+      
+      list = (dc->data).list;
+      list_reverse(list);
       break;
     case LIST_SORT:
+      dc = find_data_collect(ds);
+      ASSERT(dc != NULL);
+      
+      list = (dc->data).list;
+      list_sort(list,list_less,NULL);
       break;
     case LIST_INSERT_ORDERED:
+       dc = find_data_collect(ds);
+      ASSERT(dc != NULL);
+      
+      list = (dc->data).list;
+      item = (struct list_item*)malloc(sizeof(struct list_item));
+      item->data = strtol(para[0],NULL,10);
+      list_insert_ordered(list,&(item->elem),list_less,NULL );
       break;
     case LIST_UNIQUE:
+       dc = find_data_collect(ds);
+      ASSERT(dc != NULL);
+      
+      list = (dc->data).list;
+
+      if(para[0][0] =='\0'){
+        list_unique(list,NULL,list_less,NULL);
+        break;
+      }
+      dc = find_data_collect(para[0]);
+      list1 = (dc->data).list;
+      list_unique(list,list1,list_less,NULL);
       break;
+
     case LIST_MAX:
+      dc = find_data_collect(ds);
+      ASSERT(dc != NULL);
+      
+      list = (dc->data).list;
+      elem = list_max(list,list_less,NULL);
+      printf("%d\n",(list_entry(elem,struct list_item, elem) )->data);
       break;
     case LIST_MIN:
+      dc = find_data_collect(ds);
+      ASSERT(dc != NULL);
+      
+      list = (dc->data).list;
+      elem = list_min(list,list_less,NULL);
+      printf("%d\n",(list_entry(elem,struct list_item, elem) )->data);
+      break;
+    case LIST_SWAP:
+
+      dc = find_data_collect(ds);
+      ASSERT(dc != NULL);
+
+      idx1 = strtol(para[0], NULL , 10);
+      idx2 = strtol(para[1], NULL , 10);
+      list = (dc->data).list; 
+      cnt=0;
+      for(elem = list_begin(list) ; elem != list_end(list) ; ){
+        if(cnt == idx1) elem1 = elem;
+        if(cnt == idx2) elem2 = elem;
+        elem = list_next(elem);
+        cnt++;
+      }
+      list_swap(elem1,elem2);
+      break;
+
+    case LIST_SHUFFLE:
+      dc = find_data_collect(ds);
+      ASSERT(dc != NULL);
+
+      list = (dc->data).list;
+      list_shuffle(list);
       break;
   }
 }
 
+static bool list_less(const struct list_elem *a,const struct list_elem *b,void *aux){
+
+  if(list_entry(a,struct list_item, elem)->data <list_entry(b,struct list_item, elem)->data) 
+    return true;
+  else
+    return false;
+
+}

@@ -165,7 +165,9 @@ void list_unique (struct list *, struct list *duplicates,
 
 /* Function for project 0-2 */
 void list_swap(struct list_elem *a, struct list_elem *b);
-void list_suffle(struct list *list);
+void list_shuffle(struct list *list);
+
+static bool list_less(const struct list_elem *a,const struct list_elem *b,void *aux);
 
 
 
