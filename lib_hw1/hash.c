@@ -441,7 +441,7 @@ remove_elem (struct hash *h, struct hash_elem *e)
 }
 
 unsigned hasher(struct hash_elem *e, void* aux) {
-    return hash_int_2(hash_entry(e, HASH_ITEM, elem)->data);
+    return hash_int(hash_entry(e, HASH_ITEM, elem)->data);
 }
 
 bool hash_compare(struct hash_elem* elemA, struct hash_elem* elemB, void* aux) {

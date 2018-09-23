@@ -147,6 +147,7 @@ void dataDumper(char* name) {
     int index;
     struct list_elem *listIt;
     struct hash_iterator hashIt;
+    size_t i;
 
     while((index = findTargetIndex(type, name)) == -1) {
         if(type < BITMAP)
@@ -173,6 +174,10 @@ void dataDumper(char* name) {
                 puts("");
             break;
         case BITMAP:
+            for(i = 0; i < bitmap_size(bitmapArray[index].bitmapLink); i++)
+                printf("%d", bitmap_test(bitmapArray[index].bitmapLink, i));
+            if(bitmap_size(bitmapArray[index].bitmapLink))
+                puts("");
             break;
         default:
             break;
@@ -220,6 +225,9 @@ void dataDestroyer(char* name) {
             memset(hashArray[index].hashName, '\0', INPUT_SIZE);
             break;
         case BITMAP:
+            bitmap_destroy(bitmapArray[index].bitmapLink);
+            bitmapCount--;
+            memset(bitmapArray[index].bitmapName, '\0', INPUT_SIZE);
             break;
         default:
             break;
@@ -481,12 +489,7 @@ void bitmapCommand(char tok[][INPUT_SIZE], bool createFlag) {
     BITMAP_FUNC funcNum;
     int index;
 
-    /*
-    HASH_ITEM *hashItem = NULL;
-    struct hash_elem *elem1;
-    */
     struct bitmap* elem1;
-    size_t size;
 
     if(createFlag) {
         funcNum = B_CREATE;
@@ -496,12 +499,11 @@ void bitmapCommand(char tok[][INPUT_SIZE], bool createFlag) {
 
         for(index = 0; bitmapArray[index].bitmapLink && index < MAX_BITMAP; index++);
         strcpy(bitmapArray[index].bitmapName, tok[2]);
-        hashCount++;
     }
     else {
-        strcpy(funcName, tok[0] + 5);
+        strcpy(funcName, tok[0] + 7);
         index = findTargetIndex(BITMAP, tok[1]);
-        for(funcNum = H_SIZE; strcmp(funcName, funcList[funcNum]) && funcNum <= B_EXPAND; funcNum++);
+        for(funcNum = B_SIZE; strcmp(funcName, funcList[funcNum]) && funcNum <= B_EXPAND; funcNum++);
     }
 
     assert(index != -1);
@@ -510,28 +512,63 @@ void bitmapCommand(char tok[][INPUT_SIZE], bool createFlag) {
 
     switch(funcNum) {
         // return type is struct bitmap*
-        case B_CREATE:break;
-        case B_EXPAND:break;
+        case B_CREATE:
+            elem1 = ((struct bitmap*(*)(size_t)) bitmapFunc[funcNum]) (strtol(tok[3], NULL, 10));
+            if(elem1) {
+                bitmapArray[index].bitmapLink = elem1;
+                bitmapCount++;
+            }
+            break;
+        case B_EXPAND:
+            elem1 = ((struct bitmap*(*)(struct bitmap*, int)) bitmapFunc[funcNum]) (targetBitmap, strtol(tok[2], NULL, 10));
+            if (elem1)
+                bitmapArray[index].bitmapLink = elem1;
+            else
+                errorDump("bitmap expand failed");
+            break;
         // return type is size_t
-        case B_SIZE:break;
-        case B_COUNT:break;
-        case B_SCAN:break;
-        case B_SCAN_AND_FLIP:break;
+        case B_SIZE:
+            printf("%zu\n", ((size_t(*)(const struct bitmap*)) bitmapFunc[funcNum]) (targetBitmap));
+            break;
+        case B_COUNT:
+        case B_SCAN:
+            printf("%u\n", ((size_t(*)(const struct bitmap*, size_t, size_t, bool)) bitmapFunc[funcNum]) (targetBitmap, strtol(tok[2], NULL, 10), strtol(tok[3], NULL, 10), strcmp(tok[4], "true") ? false : true));
+            break;
+        case B_SCAN_AND_FLIP:
+            printf("%u\n", ((size_t(*)(struct bitmap*, size_t, size_t, bool)) bitmapFunc[funcNum]) (targetBitmap, strtol(tok[2], NULL, 10), strtol(tok[3], NULL, 10), strcmp(tok[4], "true") ? false : true));
+            break;
         // return type is void
-        case B_SET:break;
-        case B_MARK:break;
-        case B_RESET:break;
-        case B_FLIP:break;
-        case B_SET_ALL:break;
-        case B_SET_MULTIPLE:break;
-        case B_DUMP:break;
+        case B_SET:
+            ((void(*)(struct bitmap*, size_t, bool)) bitmapFunc[funcNum]) (targetBitmap, strtol(tok[2], NULL, 10), strcmp(tok[3], "true") ? false : true);
+            break;
+        case B_SET_ALL:
+            ((void(*)(struct bitmap*, bool)) bitmapFunc[funcNum]) (targetBitmap, strcmp(tok[2], "true") ? false : true);
+            break;
+        case B_MARK:
+        case B_RESET:
+        case B_FLIP:
+            ((void(*)(struct bitmap*, size_t)) bitmapFunc[funcNum]) (targetBitmap, strtol(tok[2], NULL, 10));
+            break;
+        case B_SET_MULTIPLE:
+            ((void(*)(struct bitmap*, size_t, size_t, bool)) bitmapFunc[funcNum]) (targetBitmap, strtol(tok[2], NULL, 10), strtol(tok[3], NULL, 10), strcmp(tok[4], "true") ? false : true);
+            break;
+        case B_DUMP:
+            ((size_t(*)(const struct bitmap*)) bitmapFunc[funcNum]) (targetBitmap);
+            break;
         // return type is bool
-        case B_TEST:break;
-        case B_CONTAINS:break;
-        case B_ANY:break;
-        case B_NONE:break;
-        case B_ALL:break;
+        case B_TEST:
+            printf("%s\n", (((bool(*)(const struct bitmap*, size_t)) bitmapFunc[funcNum]) (targetBitmap, strtol(tok[2], NULL, 10))) ? "true" : "false");
+            break;
+        case B_CONTAINS:
+            printf("%s\n", (((size_t(*)(const struct bitmap*, size_t, size_t, bool)) bitmapFunc[funcNum]) (targetBitmap, strtol(tok[2], NULL, 10), strtol(tok[3], NULL, 10), strcmp(tok[4], "true") ? false : true)) ? "true" : "false");
+            break;
+        case B_ANY:
+        case B_NONE:
+        case B_ALL:
+            printf("%s\n", (((bool(*)(const struct bitmap*, size_t, size_t)) bitmapFunc[funcNum]) (targetBitmap, strtol(tok[2], NULL, 10), strtol(tok[3], NULL, 10))) ? "true" : "false");
+            break;
         default:
+            errorDump("Unkown bitmap command");
             break;
     }
 }
