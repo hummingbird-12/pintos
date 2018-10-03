@@ -1,6 +1,6 @@
-# Override global  #
+# Override Global #
 !*
 !*.*
 
-# Local rule #
+# Local .gitignore #
 *.swp
