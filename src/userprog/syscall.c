@@ -1,6 +1,7 @@
 #include "userprog/syscall.h"
 #include <stdio.h>
 #include <syscall-nr.h>
+#include <console.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 
@@ -17,4 +18,16 @@ syscall_handler (struct intr_frame *f UNUSED)
 {
   printf ("system call!\n");
   thread_exit ();
+}
+
+int
+syscall_write(int fd, const void *buffer,unsigned size)
+{
+  if(fd){
+    putbuf((const char*)buffer,(size_t)size);
+    return size;
+
+  }
+
+  return 0;
 }
