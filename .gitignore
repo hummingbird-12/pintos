@@ -1,0 +1,6 @@
+# Override global  #
+!*
+!*.*
+
+# Local rule #
+*.swp
