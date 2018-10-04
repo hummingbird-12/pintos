@@ -216,6 +216,7 @@ static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
                           bool writable);
+static void stack_push (void **esp, void *data, size_t size);
 
 /* Loads an ELF executable from FILE_NAME into the current thread.
    Stores the executable's entry point into *EIP
@@ -230,6 +231,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
   off_t file_ofset;
   bool success = false;
   int i;
+  char *tok, *toks[129], *tok_tracker, *cmd_copy;
+  int tok_cnt = 0;
 
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
@@ -237,8 +240,16 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
+  cmd_copy = palloc_get_page (0);
+  if (cmd_copy == NULL)
+    goto done;
+  strlcpy (cmd_copy, file_name, PGSIZE);
+  for(tok = strtok_r (cmd_copy, " ", &tok_tracker); tok != NULL;
+      tok = strtok_r (NULL, " ", &tok_tracker))
+      toks[tok_cnt++] = tok;
+
   /* Open executable file. */
-  file = filesys_open (file_name);
+  file = filesys_open (cmd_copy);
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
@@ -324,6 +335,22 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
 
+  printf("------------ esp: %p\n", *esp);
+  //hex_dump((int) 0xbfffffc0, *esp, 90, true);
+  
+  /* push words of comand line */
+  for(i = tok_cnt - 1; i >= 0; i--)
+      stack_push (esp, toks[i], strlen(toks[i]) + 1);
+  printf("------------ esp: %p\n", *esp);
+  /* word-align ESP for better performance */
+  *esp = (void*)(((int) *esp / sizeof(uint32_t)) * sizeof(uint32_t));
+  printf("------------ esp: %p\n", *esp);
+
+  for(i = tok_cnt; i >= 0; i--)
+      stack_push (esp, &(toks[i]), sizeof(uint32_t));
+
+  hex_dump((int) *esp, *esp, (int) PHYS_BASE - (int) (*esp), true);
+
   success = true;
 
  done:
@@ -331,6 +358,12 @@ load (const char *file_name, void (**eip) (void), void **esp)
   file_close (file);
   return success;
 }
+
+static void stack_push (void **esp, void *data, size_t size) {
+    (*esp) -= size; // decrement stack pointer
+    memcpy(*esp, data, size);
+}
+
 
 /* load() helpers. */
 
