@@ -26,22 +26,37 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
    before process_execute() returns.  Returns the new process's
    thread id, or TID_ERROR if the thread cannot be created. */
 tid_t
-process_execute (const char *file_name) 
+process_execute (const char *cmd_input) 
 {
-  char *fn_copy;
+  char *cmd_copy, *file_name, *tok_tracker;
   tid_t tid;
 
-  /* Make a copy of FILE_NAME.
+  /* Make a copy of CMD_INPUT.
      Otherwise there's a race between the caller and load(). */
-  fn_copy = palloc_get_page (0);
-  if (fn_copy == NULL)
+  cmd_copy = palloc_get_page (0);
+  file_name = palloc_get_page (0);
+  if (cmd_copy == NULL)
     return TID_ERROR;
-  strlcpy (fn_copy, file_name, PGSIZE);
+  if (file_name == NULL) {
+      palloc_free_page (cmd_copy);
+      return TID_ERROR;
+  }
+  strlcpy (cmd_copy, cmd_input, PGSIZE);
+
+  if(strtok_r(cmd_copy, " ", &tok_tracker) == NULL) {
+      palloc_free_page (cmd_copy);
+      palloc_free_page (file_name);
+      return TID_ERROR;
+  }
+  strlcpy (file_name, cmd_copy, PGSIZE);
+  strlcpy (cmd_copy, cmd_input, PGSIZE);
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
-  if (tid == TID_ERROR)
-    palloc_free_page (fn_copy); 
+  tid = thread_create (file_name, PRI_DEFAULT, start_process, cmd_copy);
+  if (tid == TID_ERROR) {
+    palloc_free_page (cmd_copy);
+    palloc_free_page (file_name);
+  }
   return tid;
 }
 
@@ -438,7 +453,7 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        *esp = PHYS_BASE - 12;
+        *esp = PHYS_BASE;// - 12;
       else
         palloc_free_page (kpage);
     }
