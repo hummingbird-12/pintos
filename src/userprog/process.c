@@ -29,6 +29,7 @@ tid_t
 process_execute (const char *file_name) 
 {
   char *fn_copy;
+  char *save_ptr;
   tid_t tid;
 
   /* Make a copy of FILE_NAME.
@@ -36,14 +37,26 @@ process_execute (const char *file_name)
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
+
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  file_name = strtok_r(file_name, " ", &save_ptr);
+//  printf("file_name : %s\n",file_name);
+  
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
 }
+
+void
+parse_cmd(char *cmd){
+
+
+
+}
+
 
 /* A thread function that loads a user process and starts it
    running. */
@@ -60,6 +73,7 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
+
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -88,6 +102,7 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
+  while(1) {}
   return -1;
 }
 
@@ -215,11 +230,31 @@ load (const char *file_name, void (**eip) (void), void **esp)
   bool success = false;
   int i;
 
+  char *token,*save_ptr;
+  int arg_num = 0;
+  char *argument[ARG_MAX];
+
+
+
+
+
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
   if (t->pagedir == NULL) 
     goto done;
   process_activate ();
+
+
+
+  for(token = strtok_r(file_name," ", &save_ptr);token != NULL ; token = strtok_r(NULL, " ", &save_ptr)){
+    printf("\n'%s'\n",token);
+    argument[arg_num]=token;
+    arg_num++;
+  }
+
+  file_name = argument[0];
+
+
 
   /* Open executable file. */
   file = filesys_open (file_name);
@@ -431,6 +466,7 @@ setup_stack (void **esp)
 {
   uint8_t *kpage;
   bool success = false;
+
 
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
