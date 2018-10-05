@@ -233,6 +233,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   int i;
   char *tok, *toks[129], *tok_tracker, *cmd_copy;
   int tok_cnt = 0;
+  uint32_t *argv[129], temp;
 
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
@@ -247,12 +248,13 @@ load (const char *file_name, void (**eip) (void), void **esp)
   for(tok = strtok_r (cmd_copy, " ", &tok_tracker); tok != NULL;
       tok = strtok_r (NULL, " ", &tok_tracker))
       toks[tok_cnt++] = tok;
+  toks[tok_cnt] = NULL;
 
   /* Open executable file. */
   file = filesys_open (cmd_copy);
   if (file == NULL) 
     {
-      printf ("load: %s: open failed\n", file_name);
+      printf ("load: %s: open failed\n", cmd_copy);
       goto done; 
     }
 
@@ -335,21 +337,31 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
 
-  printf("------------ esp: %p\n", *esp);
-  //hex_dump((int) 0xbfffffc0, *esp, 90, true);
-  
   /* push words of comand line */
-  for(i = tok_cnt - 1; i >= 0; i--)
+  for(i = tok_cnt - 1; i >= 0; i--) {
       stack_push (esp, toks[i], strlen(toks[i]) + 1);
-  printf("------------ esp: %p\n", *esp);
+      argv[i] = *esp;
+  }
+  argv[tok_cnt] = NULL;
+
   /* word-align ESP for better performance */
-  *esp = (void*)(((int) *esp / sizeof(uint32_t)) * sizeof(uint32_t));
-  printf("------------ esp: %p\n", *esp);
+  *esp = (void*) (((int) *esp / sizeof(uint32_t)) * sizeof(uint32_t));
 
+  /* push arguments' address */
   for(i = tok_cnt; i >= 0; i--)
-      stack_push (esp, &(toks[i]), sizeof(uint32_t));
+      stack_push (esp, argv + i, sizeof(uint32_t));
+  temp = (uint32_t) *esp;
 
-  hex_dump((int) *esp, *esp, (int) PHYS_BASE - (int) (*esp), true);
+  /* push argv[0]'s address */
+  stack_push (esp, &temp, sizeof(uint32_t));
+
+  /* push argc */
+  stack_push (esp, &tok_cnt, sizeof(uint32_t));
+
+  /* push fake return address as temporary measure  */
+  stack_push (esp, argv + tok_cnt, sizeof(uint32_t));
+
+  // hex_dump((int) *esp, *esp, (int) PHYS_BASE - (int) (*esp), true);
 
   success = true;
 
