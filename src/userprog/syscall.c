@@ -16,12 +16,22 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
-  printf ("system call!\n");
-  thread_exit ();
+  //esp가 가르키고있는거가 NUMBER
+
+  switch(*(uint32_t*)(f->esp)){
+    case SYS_EXIT:
+      break;
+
+    case SYS_WRITE:
+      write((int)(*(uint32_t*)(f->esp + 4)), ((void *)(*(uint32_t*)(f->esp+8))) ,((unsigned)(*(uint32_t*)(f->esp+12))) );
+      break;
+  }
+
+  //thread_exit ();
 }
 
 int
-syscall_write(int fd, const void *buffer,unsigned size)
+write(int fd, const void *buffer,unsigned size)
 {
   if(fd){
     putbuf((const char*)buffer,(size_t)size);
