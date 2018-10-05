@@ -231,7 +231,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   off_t file_ofset;
   bool success = false;
   int i;
-  char *tok, *toks[129], *tok_tracker, *cmd_copy;
+  char *tok, *toks[129], *tok_tracker = NULL, *cmd_copy = NULL;
   int tok_cnt = 0;
   uint32_t *argv[129], temp;
 
@@ -368,6 +368,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
  done:
   /* We arrive here whether the load is successful or not. */
   file_close (file);
+  if(cmd_copy != NULL)
+    palloc_free_page (cmd_copy);
   return success;
 }
 
