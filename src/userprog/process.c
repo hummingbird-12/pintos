@@ -26,37 +26,34 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
    before process_execute() returns.  Returns the new process's
    thread id, or TID_ERROR if the thread cannot be created. */
 tid_t
-process_execute (const char *file_name) 
+process_execute (const char *cmd) 
 {
-  char *fn_copy;
+  char *cmd_copy, *file_name;
   char *save_ptr;
-  tid_t tid;
+  tid_t tid = TID_ERROR;
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
-  fn_copy = palloc_get_page (0);
-  if (fn_copy == NULL)
+  cmd_copy = palloc_get_page (0);
+  file_name = palloc_get_page (0);
+  if (cmd_copy == NULL||file_name == NULL)
     return TID_ERROR;
 
-  strlcpy (fn_copy, file_name, PGSIZE);
+  strlcpy (cmd_copy, cmd, PGSIZE);
 
-  file_name = strtok_r(file_name, " ", &save_ptr);
-//  printf("file_name : %s\n",file_name);
-  
+  file_name = strtok_r(cmd_copy, " ", &save_ptr);
+
+  strlcpy (cmd_copy, cmd, PGSIZE);
+  if(file_name != NULL)
+    tid = thread_create (file_name, PRI_DEFAULT, start_process, cmd_copy);
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
-  if (tid == TID_ERROR)
-    palloc_free_page (fn_copy); 
+  if (tid == TID_ERROR){
+    palloc_free_page (file_name);
+    palloc_free_page (cmd_copy);
+  }
   return tid;
 }
-
-void
-parse_cmd(char *cmd){
-
-
-
-}
-
 
 /* A thread function that loads a user process and starts it
    running. */
@@ -230,12 +227,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
   bool success = false;
   int i;
 
-  char *token,*save_ptr;
-  int arg_num = 0;
+  char *token,*save_ptr, *cmd_copy;
+  int argc = 0;
+  uint32_t *argv[ARG_MAX], temp;
   char *argument[ARG_MAX];
-
-
-
 
 
   /* Allocate and activate page directory. */
@@ -245,22 +240,20 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
 
 
+  cmd_copy = palloc_get_page(0);
+  if(cmd_copy == NULL) goto done;
 
-  for(token = strtok_r(file_name," ", &save_ptr);token != NULL ; token = strtok_r(NULL, " ", &save_ptr)){
-    printf("\n'%s'\n",token);
-    argument[arg_num]=token;
-    arg_num++;
+  strlcpy(cmd_copy, file_name, PGSIZE);
+
+  for(token = strtok_r(cmd_copy," ", &save_ptr);token != NULL ; token = strtok_r(NULL, " ", &save_ptr)){
+    argument[argc]=token;
+    argc++;
   }
-
-  file_name = argument[0];
-
-
-
   /* Open executable file. */
-  file = filesys_open (file_name);
+  file = filesys_open (argument[0]);
   if (file == NULL) 
     {
-      printf ("load: %s: open failed\n", file_name);
+      printf ("load: %s: open failed\n", argument[0]);
       goto done; 
     }
 
@@ -343,13 +336,55 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
 
+  /**** push command to stack ****/
+//  hex_dump((int) *esp, *esp, (int) PHYS_BASE - (int) (*esp),true );
+
+
+  for(i = argc - 1; i>=0 ; i--){
+    stack_push (esp, argument[i], strlen(argument[i]) + 1);
+    argv[i] = *esp;
+  }
+  argv[argc] = NULL;
+
+
+  // 4의배수로!
+  *esp = (void*) ( ((int)*esp / sizeof(uint32_t)) * sizeof(uint32_t) );
+  //hex_dump((int) *esp, *esp, (int) PHYS_BASE - (int) (*esp),true );
+
+
+  for(i = argc; i>=0 ; i--)
+    stack_push(esp, argv + i, sizeof(uint32_t));
+  temp = (uint32_t) *esp;
+  
+  stack_push(esp, &temp, sizeof(uint32_t));
+
+  stack_push(esp, &argc, sizeof(uint32_t));
+
+  stack_push(esp, argv + argc, sizeof(uint32_t));
+
+
+
+  hex_dump((int) *esp, *esp, (int) PHYS_BASE - (int) (*esp),true );
+  /******************************/
+
   success = true;
 
  done:
   /* We arrive here whether the load is successful or not. */
   file_close (file);
+  if(cmd_copy != NULL)
+    palloc_free_page (cmd_copy);
   return success;
 }
+
+
+static void stack_push (void **esp, void *data, size_t size){
+  (*esp) -= size;
+  memcpy(*esp, data, size);
+}
+
+
+
 
 /* load() helpers. */
 
