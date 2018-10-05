@@ -4,3 +4,5 @@
 
 # Local .gitignore #
 *.swp
+*.o
+*.a
