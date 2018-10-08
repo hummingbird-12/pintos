@@ -40,10 +40,8 @@ process_execute (const char *cmd)
     return TID_ERROR;
 
   strlcpy (cmd_copy, cmd, PGSIZE);
-
-  file_name = strtok_r(cmd_copy, " ", &save_ptr);
-
-  strlcpy (cmd_copy, cmd, PGSIZE);
+  strlcpy (file_name, cmd, PGSIZE);
+  file_name = strtok_r(file_name, " ", &save_ptr);
   if(file_name != NULL)
     tid = thread_create (file_name, PRI_DEFAULT, start_process, cmd_copy);
 
@@ -99,7 +97,10 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  while(1) {}
+  long long i,j;
+  while(i<99000000){
+   i+= (i<99000001) ? 1 : 0;
+  }
   return -1;
 }
 
@@ -364,7 +365,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
 
 
-  hex_dump((int) *esp, *esp, (int) PHYS_BASE - (int) (*esp),true );
+ // hex_dump((int) *esp, *esp, (int) PHYS_BASE - (int) (*esp),true );
   /******************************/
 
   success = true;
@@ -428,7 +429,10 @@ validate_segment (const struct Elf32_Phdr *phdr, struct file *file)
      it then user code that passed a null pointer to system calls
      could quite likely panic the kernel by way of null pointer
      assertions in memcpy(), etc. */
-  if (phdr->p_vaddr < PGSIZE)
+
+  /************* for validate_segment bugs***********/
+  //if (phdr->p_offset < PGSIZE)
+  if(phdr->p_vaddr < PGSIZE)
     return false;
 
   /* It's okay. */
