@@ -7,6 +7,7 @@
 #include "devices/shutdown.h"
 #include "devices/input.h"
 #include "threads/vaddr.h"
+#include "userprog/process.h"
 
 typedef int pid_t;
 
@@ -44,17 +45,15 @@ syscall_handler (struct intr_frame *f UNUSED)
     for(i = 1; i <= 3; i++)
         argv[i] = (void*) ((uint32_t)(f->esp + i * sizeof(uint32_t)));
 
-    // if(f->esp == NULL || )
-  //printf ("system call!\n");
     switch(*((int*)f->esp)) {
         case SYS_HALT:
         case SYS_EXIT:
             ((void (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
             break;
         case SYS_EXEC:
+            f->eax = ((pid_t (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
             break;
         case SYS_WAIT:
-            break;
         case SYS_READ:
         case SYS_WRITE:
             f->eax = ((int (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
@@ -62,7 +61,6 @@ syscall_handler (struct intr_frame *f UNUSED)
         default:
             break;
     }
-  //thread_exit ();
 }
 
 static bool validate_address (const void *addr) {
@@ -70,7 +68,7 @@ static bool validate_address (const void *addr) {
         return false;
 }
 
-static void halt (void **argv) {
+static void halt (void **argv UNUSED) {
     shutdown_power_off();
 }
 
@@ -81,11 +79,11 @@ static void exit (void **argv) {
 }
 
 static pid_t exec (void **argv) {
-    return 0;
+    return process_execute(*(const char**)argv[1]);
 }
 
 static int wait (void **argv) {
-    return -1;//process_wait()
+    return process_wait(*(tid_t*)argv[1]);
 }
 
 static int read (void **argv) {
