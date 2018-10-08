@@ -103,8 +103,13 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-    while(1){}
-  return -1;
+  //while(1){}
+  long long i = 0;
+  //printf("<<< WAITING >>>\n");
+  while(i < 500000000ll) {
+      i += (i < 500000000ll) ? 1 : 0;
+  }
+  return thread_current()->exit_status;
 }
 
 /* Free the current process's resources. */

@@ -96,12 +96,13 @@ struct thread
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
+    int exit_status;
+    struct list child_list;
+    struct list_elem child_elem;
 #endif
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
-
-    int exit_status;
   };
 
 /* If false (default), use round-robin scheduler.

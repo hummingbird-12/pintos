@@ -6,10 +6,13 @@
 
 #include "devices/shutdown.h"
 #include "devices/input.h"
+#include "threads/vaddr.h"
 
 typedef int pid_t;
 
 static void syscall_handler (struct intr_frame *);
+
+static bool validate_address (const void* addr);
 
 static void halt (void **argv);
 static void exit (void **argv);
@@ -55,12 +58,16 @@ syscall_handler (struct intr_frame *f UNUSED)
         case SYS_READ:
         case SYS_WRITE:
             f->eax = ((int (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
-            //f->eax = write(STDOUT_FILENO, (const void*) *((uint32_t*) (f->esp + 2 * sizeof(uint32_t))), (unsigned) *((uint32_t*) (f->esp + 3 * sizeof(uint32_t))));
             break;
         default:
             break;
     }
   //thread_exit ();
+}
+
+static bool validate_address (const void *addr) {
+    if ((uint32_t*)addr == NULL || is_kernel_vaddr(addr))
+        return false;
 }
 
 static void halt (void **argv) {
@@ -69,6 +76,7 @@ static void halt (void **argv) {
 
 static void exit (void **argv) {
     printf("%s: exit(%d)\n", thread_current()->name, *(int*)argv[1]);
+    thread_current()->exit_status = *(int*)argv[1];
     thread_exit ();
 }
 
@@ -77,7 +85,7 @@ static pid_t exec (void **argv) {
 }
 
 static int wait (void **argv) {
-    return -1;
+    return -1;//process_wait()
 }
 
 static int read (void **argv) {
