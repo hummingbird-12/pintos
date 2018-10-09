@@ -56,13 +56,13 @@ syscall_handler (struct intr_frame *f UNUSED)
             ((void (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
             break;
         case SYS_EXEC:
-            if((valid_address = validate_address((void*)*(uint32_t*) argv[1])))
+            if(!(valid_address = validate_address((void*)*(uint32_t*) argv[1])))
                 break;
             f->eax = ((pid_t (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
             break;
         case SYS_READ:
         case SYS_WRITE:
-            if((valid_address = validate_address((void*)*(uint32_t*) argv[2])))
+            if(!(valid_address = validate_address((void*)*(uint32_t*) argv[2])))
                 break;
         case SYS_WAIT:
             //hex_dump((uint32_t)(f->esp), f->esp, (size_t) PHYS_BASE - (size_t)((uint32_t)(f->esp)), true);
