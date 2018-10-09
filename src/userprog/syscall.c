@@ -13,7 +13,10 @@ typedef int pid_t;
 
 static void syscall_handler (struct intr_frame *);
 
-static bool validate_address (const void* addr);
+static bool validate_address (const void *addr);
+static void fail_exit (void);
+static int get_user (const uint8_t *uaddr);
+//static bool put_user (uint8_t *uaddr, uint8_t byte);
 
 static void halt (void **argv);
 static void exit (void **argv);
@@ -38,9 +41,11 @@ syscall_handler (struct intr_frame *f UNUSED)
         &read, &write, NULL, NULL,
         NULL
     };
-    /* get arguments for system call, address verification will take place later  */
+    /* get arguments for system call,
+       address verification will take place later  */
     void *argv[129] = { NULL };
     int i;
+    bool valid_address = true;
 
     for(i = 1; i <= 3; i++)
         argv[i] = (void*) ((uint32_t)(f->esp + i * sizeof(uint32_t)));
@@ -51,22 +56,64 @@ syscall_handler (struct intr_frame *f UNUSED)
             ((void (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
             break;
         case SYS_EXEC:
+            if((valid_address = validate_address((void*)*(uint32_t*) argv[1])))
+                break;
             f->eax = ((pid_t (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
             break;
-        case SYS_WAIT:
         case SYS_READ:
         case SYS_WRITE:
+            if((valid_address = validate_address((void*)*(uint32_t*) argv[2])))
+                break;
+        case SYS_WAIT:
+            //hex_dump((uint32_t)(f->esp), f->esp, (size_t) PHYS_BASE - (size_t)((uint32_t)(f->esp)), true);
             f->eax = ((int (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
             break;
         default:
             break;
     }
+
+    if(!valid_address)
+        fail_exit();
 }
 
 static bool validate_address (const void *addr) {
-    if ((uint32_t*)addr == NULL || is_kernel_vaddr(addr))
+    if (is_kernel_vaddr(addr) ||
+            get_user((const uint8_t*) addr) == -1)
         return false;
+    return true;
 }
+
+static void fail_exit (void) {
+    printf("%s: exit(%d)\n", thread_current()->name, -1);
+    thread_current()->exit_status = -1;
+    thread_exit ();
+}
+
+/* Suggested method in Pintos Manual 3.1.5 */
+/* Reads a byte at user virtual address UADDR.
+ * UADDR must be below PHYS_BASE.
+ * Returns the byte value if successful,
+ * -1 if a segfault occured. */
+static int get_user (const uint8_t *uaddr) {
+    int result;
+    asm ("movl $1f, %0; movzbl %1, %0; 1:"
+            : "=&a" (result) : "m" (*uaddr));
+    return result;
+}
+
+/* MAYBE NOT NEEDED */
+/* Suggested method in Pintos Manual 3.1.5
+ * Writes BYTE to user address UDST.
+ * UDST must be below PHYS_BASE.
+ * Returns true if successful,
+ * false if a segfault occured.
+static bool put_user (uint8_t *udst, uint8_t byte) {
+    int error_code;
+    asm ("movl $1f, %0; movb %b2, %1; 1:"
+            : "=&a" (error_code), "=m" (*udst) : "q" (byte));
+    return error_code != -1;
+}
+*/
 
 static void halt (void **argv UNUSED) {
     shutdown_power_off();
