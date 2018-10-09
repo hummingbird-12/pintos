@@ -148,14 +148,25 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
 
+  /* Suggested method in Pintos Manual 3.1.5  */
+  /* At page fault,
+   * set EAX to 0xFFFFFFFF
+   * set EIP to EAX's former value */
+  if(!user) {
+      f->eip = (void*) f->eax;
+      f->eax = 0xFFFFFFFF;
+  }
+
+  /* NOT NEEDED */
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
-     which fault_addr refers. */
+     which fault_addr refers.
   printf ("Page fault at %p: %s error %s page in %s context.\n",
           fault_addr,
           not_present ? "not present" : "rights violation",
           write ? "writing" : "reading",
           user ? "user" : "kernel");
   kill (f);
+  */
 }
 
