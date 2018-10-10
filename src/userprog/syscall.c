@@ -14,7 +14,6 @@ typedef int pid_t;
 static void syscall_handler (struct intr_frame *);
 
 static bool validate_address (const void *addr);
-static void fail_exit (void);
 static int get_user (const uint8_t *uaddr);
 //static bool put_user (uint8_t *uaddr, uint8_t byte);
 
@@ -83,7 +82,7 @@ static bool validate_address (const void *addr) {
     return true;
 }
 
-static void fail_exit (void) {
+void fail_exit (void) {
     printf("%s: exit(%d)\n", thread_current()->name, -1);
     thread_current()->exit_status = -1;
     thread_exit ();

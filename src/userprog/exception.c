@@ -5,6 +5,8 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 
+#include "userprog/syscall.h"
+
 /* Number of page faults processed. */
 static long long page_fault_cnt;
 
@@ -152,10 +154,12 @@ page_fault (struct intr_frame *f)
   /* At page fault,
    * set EAX to 0xFFFFFFFF
    * set EIP to EAX's former value */
-  if(!user) {
-      f->eip = (void*) f->eax;
-      f->eax = 0xFFFFFFFF;
-  }
+  f->eip = (void*) f->eax;
+  f->eax = 0xFFFFFFFF;
+
+  /* if page fault caused within user process */
+  if(user)
+      fail_exit();
 
   /* NOT NEEDED */
   /* To implement virtual memory, delete the rest of the function
