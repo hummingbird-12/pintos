@@ -105,7 +105,7 @@ process_wait (tid_t child_tid UNUSED)
 {
   //while(1){}
   long long i = 0;
-  //printf("<<< WAITING >>>\n");
+  printf("<<< WAITING by %s >>>\n", thread_name() ? thread_name() : "NULL");
   while(i < 500000000ll) {
       i += (i < 500000000ll) ? 1 : 0;
   }
