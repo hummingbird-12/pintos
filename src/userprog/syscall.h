@@ -3,12 +3,12 @@
 typedef int pid_t;
 
 void syscall_init (void);
-void halt();
-pid_t exec(const char* file);
-int read(int fd, void *buffer, unsigned size);
-int write(int fd, const void *buffer, unsigned size);
-void exit(int status);
-int wait(pid_t pid);
 
+void sys_halt();
+pid_t sys_exec(const char* file);
+int sys_read(int fd, void *buffer, unsigned size);
+int sys_write(int fd, const void *buffer, unsigned size);
+void sys_exit(int status);
+int sys_wait(pid_t pid);
 
 #endif /* userprog/syscall.h */
