@@ -470,6 +470,16 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
+
+#ifdef USERPROG
+  list_init (&(t->child_list));
+  t->parent = list_size(&all_list) == 1 ? NULL : thread_current();
+  if(t->parent != NULL) {
+    list_push_back(&(t->parent->child_list), &(t->child_elem));
+    //printf("[DEBUG] parent: %s child: %s\n", thread_name(),
+            //list_entry(list_next(list_begin(&(t->parent->child_list))), struct thread, child_elem)->name);
+  }
+#endif
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -585,3 +595,17 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+#ifdef USERPROG
+/* Returns the child thread CHILD_TID. */
+struct thread *thread_child (tid_t child_tid) {
+    struct list_elem *thread_elem;
+
+    for(thread_elem = list_begin(&(thread_current()->child_list));
+            thread_elem != list_end(&(thread_current()->child_list));
+            thread_elem = list_next (thread_elem))
+        if(list_entry(thread_elem, struct thread, child_elem)->tid == child_tid)
+            return list_entry(thread_elem, struct thread, child_elem);
+    return NULL;
+}
+#endif

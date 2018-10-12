@@ -103,7 +103,6 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  //while(1){}
   long long i = 0;
   printf("<<< WAITING by %s >>>\n", thread_name() ? thread_name() : "NULL");
   while(i < 500000000ll) {
