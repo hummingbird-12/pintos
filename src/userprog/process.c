@@ -97,10 +97,28 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  long long i,j;
-  while(i<99000000){
-   i+= (i<99000001) ? 1 : 0;
+  struct thread *child_t = NULL;
+  struct list_elem *e;
+  struct list child_list = thread_current()->child_list;
+  //while(1);
+  for(e = list_begin(&child_list) ; e!= list_end(&child_list); e=list_next(e))
+  {
+    struct thread *t = list_entry(e, struct thread, childelem);
+    if (t->tid == child_tid){
+      child_t = t;
+      break;
+    }
   }
+
+  if(child_t == NULL || !(child_t->status))
+    return -1;
+
+  /*
+  long long i=0;
+  while(i<99000000){
+    i+= (i<99000001) ? 1 : 0;
+  }
+  */
   return -1;
 }
 
@@ -208,6 +226,8 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
+static void stack_push(void **esp, void *data, size_t size);
+
 static bool setup_stack (void **esp);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
@@ -228,7 +248,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   bool success = false;
   int i;
 
-  char *token,*save_ptr, *cmd_copy;
+  char *token,*save_ptr, *cmd_copy=NULL;
   int argc = 0;
   uint32_t *argv[ARG_MAX], temp;
   char *argument[ARG_MAX];
@@ -388,7 +408,6 @@ static void stack_push (void **esp, void *data, size_t size){
 
 
 /* load() helpers. */
-
 static bool install_page (void *upage, void *kpage, bool writable);
 
 /* Checks whether PHDR describes a valid, loadable segment in
