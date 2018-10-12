@@ -14,6 +14,8 @@ enum thread_status
     THREAD_DYING        /* About to be destroyed. */
   };
 
+
+
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
 typedef int tid_t;
@@ -80,6 +82,8 @@ typedef int tid_t;
    only because they are mutually exclusive: only a thread in the
    ready state is on the run queue, whereas only a thread in the
    blocked state is on a semaphore wait list. */
+
+
 struct thread
   {
     /* Owned by thread.c. */
@@ -89,6 +93,11 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
+    
+    /********** List element for child_elem -yeddo *********/
+    struct list_elem childelem; 
+    struct list child_list;
+    struct list file_list;
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
