@@ -291,6 +291,7 @@ thread_exit (void)
   ASSERT (!intr_context ());
 
 #ifdef USERPROG
+  thread_current ()->exit_called = true;
   process_exit ();
 #endif
 
@@ -472,12 +473,12 @@ init_thread (struct thread *t, const char *name, int priority)
   list_push_back (&all_list, &t->allelem);
 
 #ifdef USERPROG
-  list_init (&(t->child_list));
+  t->exit_called = t->wait_child = t->on_wait = false;
   t->parent = list_size(&all_list) == 1 ? NULL : thread_current();
-  if(t->parent != NULL) {
-    list_push_back(&(t->parent->child_list), &(t->child_elem));
-    //printf("[DEBUG] parent: %s child: %s\n", thread_name(),
-            //list_entry(list_next(list_begin(&(t->parent->child_list))), struct thread, child_elem)->name);
+  if(t != idle_thread) {
+    list_init (&(t->child_list));
+    if(t->parent != NULL)
+        list_push_back(&(t->parent->child_list), &(t->child_elem));
   }
 #endif
 }

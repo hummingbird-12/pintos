@@ -96,6 +96,9 @@ struct thread
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
+    bool exit_called;
+    bool wait_child;
+    bool on_wait;
     int exit_status;
     struct list child_list;
     struct list_elem child_elem;

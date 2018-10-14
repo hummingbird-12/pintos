@@ -17,6 +17,7 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "threads/synch.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -103,12 +104,22 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  long long i = 0;
-  printf("<<< WAITING by %s >>>\n", thread_name() ? thread_name() : "NULL");
-  while(i < 500000000ll) {
-      i += (i < 500000000ll) ? 1 : 0;
-  }
-  return thread_current()->exit_status;
+  struct thread *child_t = thread_child(child_tid);
+  int child_exit;
+
+  if(child_t == NULL)
+      return -1;
+
+  if(thread_current()->on_wait)
+      return -1;
+  thread_current()->on_wait = true;
+
+  while(child_t->exit_called == false)
+      barrier();
+  child_exit = child_t->exit_status;
+  thread_current()->wait_child = true;
+
+  return child_exit;
 }
 
 /* Free the current process's resources. */
@@ -117,6 +128,10 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+
+  while(cur->parent->wait_child == false)
+      barrier();
+  cur->parent->wait_child = cur->parent->on_wait = false;
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
