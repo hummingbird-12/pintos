@@ -31,6 +31,7 @@ process_execute (const char *cmd_input)
 {
   char *cmd_copy, *file_name, *tok_tracker;
   tid_t tid;
+  struct file *file = NULL;
 
   /* Make a copy of CMD_INPUT.
      Otherwise there's a race between the caller and load(). */
@@ -51,6 +52,12 @@ process_execute (const char *cmd_input)
   }
   strlcpy (file_name, cmd_copy, PGSIZE);
   strlcpy (cmd_copy, cmd_input, PGSIZE);
+
+  /* Try opening executable file. */
+  file = filesys_open (file_name);
+  if (file == NULL) 
+    return TID_ERROR;
+  file_close (file);
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, cmd_copy);
