@@ -116,19 +116,14 @@ process_wait (tid_t child_tid UNUSED)
 
   struct list_elem *e;
   
-  printf("-----[DEBUG at %s find %d]-----\n", thread_name(), child_tid);
   for(e = list_begin(&(thread_current()->child_list));
       e != list_end(&(thread_current()->child_list));
       e = list_next(e))
-    printf("%s : %d\n", list_entry(e, struct thread, child_elem)->name, list_entry(e, struct thread, child_elem)->tid);
-  printf("-----[DEBUG END]-----\n");
   
-  //printf("[111]%s\n",thread_name());
 
 
   if(thread_child(child_tid) == NULL) return -1;
 
-  printf("[DEBUG] WAITING BY %s\n", thread_name());
   while(thread_child(child_tid)->exit_signal == false){
     barrier();  //Prevent sequential jumbling
   }
