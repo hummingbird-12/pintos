@@ -94,15 +94,18 @@ struct thread
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
     
-    /********** List element for child_elem -yeddo *********/
-    struct list_elem childelem; 
-    struct list child_list;
-    struct list file_list;
-
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
 #ifdef USERPROG
+    /**** write ***/
+    int exit_status;
+    struct list child_list;
+    struct list_elem child_elem;
+    struct thread *parent;
+   
+    bool child_exit_signal;
+    bool exit_signal;
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
 #endif
@@ -131,6 +134,8 @@ void thread_unblock (struct thread *);
 struct thread *thread_current (void);
 tid_t thread_tid (void);
 const char *thread_name (void);
+struct thread *thread_child (tid_t chlid_tid);
+
 
 void thread_exit (void) NO_RETURN;
 void thread_yield (void);

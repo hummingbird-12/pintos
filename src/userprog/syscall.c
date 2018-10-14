@@ -6,8 +6,17 @@
 #include "devices/shutdown.h"
 #include "userprog/process.h"
 #include "userprog/syscall.h"
+#include "threads/vaddr.h"
 static void syscall_handler (struct intr_frame *);
 static int get_user(const uint8_t *uaddr);
+
+static void sys_halt(void);
+static pid_t sys_exec(const char* file);
+static int sys_read(int fd,const void *buffer, unsigned size);
+static int sys_write(int fd, const void *buffer, unsigned size);
+static void sys_exit(int status);
+static int sys_wait(pid_t pid);
+
 
 void
 syscall_init (void) 
@@ -23,19 +32,21 @@ syscall_handler (struct intr_frame *f UNUSED)
   switch(*(uint32_t*)(f->esp)){
     
     case SYS_WRITE:
-      sys_write((int)(*(uint32_t*)(f->esp + 4)), ((void *)(*(uint32_t*)(f->esp+8))) ,((unsigned)(*(uint32_t*)(f->esp+12))) );
+      f->eax = sys_write((int)(*(uint32_t*)(f->esp + 4)), ((void *)(*(uint32_t*)(f->esp+8))) ,((unsigned)(*(uint32_t*)(f->esp+12))) );
       break;
 
     case SYS_READ:
-      sys_read((int)(*(uint32_t*)(f->esp + 4)), ((void *)(*(uint32_t*)(f->esp+8))) ,((unsigned)(*(uint32_t*)(f->esp+12))) );
+      f->eax = sys_read((int)(*(uint32_t*)(f->esp + 4)), ((void *)(*(uint32_t*)(f->esp+8))) ,((unsigned)(*(uint32_t*)(f->esp+12))) );
       break;
     
     case SYS_WAIT:
-      sys_wait((pid_t)(*(uint32_t*)(f->esp + 4))) ;
+    
+      hex_dump(f->esp, f->esp, 100,1);
+      f->eax = sys_wait((pid_t)(*(uint32_t*)(f->esp + 4))) ;
       break;
 
     case SYS_EXEC:
-      sys_exec( (char*)(*(uint32_t*)(f->esp + 4)) );
+      f->eax = sys_exec( (char*)(*(uint32_t*)(f->esp + 4)) );
       break;
 
 
@@ -61,27 +72,36 @@ static bool validate_addr (const void *addr){
   return true;
 
 }
+void fail_exit (void){
+  printf("%s: exit(%d)\n", thread_current()->name, -1);
+  thread_current()->exit_status = -1;
+  thread_exit();
+}
 
-
-pid_t sys_exec(const char *file)
+static pid_t 
+sys_exec(const char *file)
 {
   return process_execute(file);
 }
 
-int sys_wait(pid_t pid){
+static int 
+sys_wait(pid_t pid){
   return process_wait(pid);
 }
 
-void sys_halt (){
+static void 
+sys_halt (){
   shutdown_power_off();
 }
 
-void sys_exit (int status){
+static void 
+sys_exit (int status){
   printf("%s: exit(%d)\n", thread_current()->name, status);
+  thread_current()->exit_status = status;
   thread_exit();
 }
-int
-sys_read(int fd, void *buffer,unsigned size)
+static int
+sys_read(int fd, const void *buffer,unsigned size)
 {
   if(fd){
     putbuf((char*)buffer,(size_t)size);
@@ -90,7 +110,7 @@ sys_read(int fd, void *buffer,unsigned size)
 
   return -1;
 }
-int
+static int
 sys_write(int fd, const void *buffer,unsigned size)
 {
   if(fd){

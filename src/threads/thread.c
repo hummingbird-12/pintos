@@ -292,14 +292,22 @@ thread_exit (void)
 
 #ifdef USERPROG
   process_exit ();
+
+  thread_current()->exit_signal = true;
+  while((thread_current() -> parent)->child_exit_signal == false)
+    barrier();
+  
 #endif
 
   /* Remove thread from all threads list, set our status to dying,
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */
+ 
   intr_disable ();
   list_remove (&thread_current()->allelem);
   thread_current ()->status = THREAD_DYING;
+  
+
   schedule ();
   NOT_REACHED ();
 }
@@ -470,6 +478,16 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
+
+#ifdef USERPROG
+  list_init (&(t->child_list));
+  t->parent = list_size(&all_list) == 1 ? NULL : thread_current();
+  if(t->parent != NULL) {
+    list_push_back(&(t->parent->child_list), &(t->child_elem));
+  }
+  t->child_exit_signal = false;
+  t->exit_signal = false;
+#endif
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -585,3 +603,19 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+#ifdef USERPROG
+// return the child thread CHILD_TID
+struct thread *thread_child (tid_t child_tid){
+  struct list_elem *e;
+
+  for(e = list_begin(&(thread_current()->child_list));e != list_end(&(thread_current()->child_list));e = list_next(e)){
+    if(list_entry(e, struct thread, child_elem)->tid == child_tid)
+      return list_entry(e, struct thread, child_elem); 
+  }
+  return NULL;
+  
+
+}
+
+#endif

@@ -17,6 +17,7 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "threads/synch.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -36,19 +37,28 @@ process_execute (const char *cmd)
      Otherwise there's a race between the caller and load(). */
   cmd_copy = palloc_get_page (0);
   file_name = palloc_get_page (0);
-  if (cmd_copy == NULL||file_name == NULL)
+  if (cmd_copy == NULL)
     return TID_ERROR;
+  if(file_name == NULL){
+    palloc_free_page(cmd_copy);
+    return TID_ERROR;
+  }
+  strlcpy(cmd_copy, cmd, PGSIZE);
 
+  if(strtok_r(cmd_copy, " ", &save_ptr)==NULL){
+    palloc_free_page (cmd_copy);
+    palloc_free_page (file_name);
+    return TID_ERROR;
+  }
+  strlcpy (file_name, cmd_copy, PGSIZE);
   strlcpy (cmd_copy, cmd, PGSIZE);
-  strlcpy (file_name, cmd, PGSIZE);
-  file_name = strtok_r(file_name, " ", &save_ptr);
-  if(file_name != NULL)
-    tid = thread_create (file_name, PRI_DEFAULT, start_process, cmd_copy);
 
+
+  tid = thread_create (file_name, PRI_DEFAULT, start_process, cmd_copy);
   /* Create a new thread to execute FILE_NAME. */
   if (tid == TID_ERROR){
-    palloc_free_page (file_name);
     palloc_free_page (cmd_copy);
+    palloc_free_page(file_name);
   }
   return tid;
 }
@@ -97,29 +107,33 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  struct thread *child_t = NULL;
-  struct list_elem *e;
-  struct list child_list = thread_current()->child_list;
-  //while(1);
-  for(e = list_begin(&child_list) ; e!= list_end(&child_list); e=list_next(e))
-  {
-    struct thread *t = list_entry(e, struct thread, childelem);
-    if (t->tid == child_tid){
-      child_t = t;
-      break;
-    }
-  }
-
-  if(child_t == NULL || !(child_t->status))
-    return -1;
-
-  /*
+   /*
   long long i=0;
   while(i<99000000){
     i+= (i<99000001) ? 1 : 0;
   }
   */
-  return -1;
+
+  struct list_elem *e;
+  
+  printf("-----[DEBUG at %s find %d]-----\n", thread_name(), child_tid);
+  for(e = list_begin(&(thread_current()->child_list));
+      e != list_end(&(thread_current()->child_list));
+      e = list_next(e))
+    printf("%s : %d\n", list_entry(e, struct thread, child_elem)->name, list_entry(e, struct thread, child_elem)->tid);
+  printf("-----[DEBUG END]-----\n");
+  
+  //printf("[111]%s\n",thread_name());
+
+
+  if(thread_child(child_tid) == NULL) return -1;
+
+  printf("[DEBUG] WAITING BY %s\n", thread_name());
+  while(thread_child(child_tid)->exit_signal == false){
+    barrier();  //Prevent sequential jumbling
+  }
+  thread_current()->child_exit_signal = true;
+  return thread_child(child_tid)->exit_status;
 }
 
 /* Free the current process's resources. */
@@ -128,7 +142,13 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+/* 
+  cur->exit_signal = true;
 
+  while((cur->parent)->child_exit_signal == false){
+    printf("???");
+    barrier();
+  }*/
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -270,8 +290,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
     argument[argc]=token;
     argc++;
   }
+  argument[argc] = NULL;
+
   /* Open executable file. */
-  file = filesys_open (argument[0]);
+  file = filesys_open (cmd_copy);
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", argument[0]);
