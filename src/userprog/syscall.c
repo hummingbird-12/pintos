@@ -49,26 +49,28 @@ syscall_handler (struct intr_frame *f UNUSED)
     for(i = 1; i <= 3; i++)
         argv[i] = (void*) ((uint32_t)(f->esp + i * sizeof(uint32_t)));
 
-    switch(*((int*)f->esp)) {
-        case SYS_HALT:
-        case SYS_EXIT:
-            ((void (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
-            break;
-        case SYS_EXEC:
-            if(!(valid_address = validate_address((void*)*(uint32_t*) argv[1])))
+    if((valid_address = validate_address(f->esp))) {
+        switch(*((int*)f->esp)) {
+            case SYS_HALT:
+            case SYS_EXIT:
+                ((void (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
                 break;
-            f->eax = ((pid_t (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
-            break;
-        case SYS_READ:
-        case SYS_WRITE:
-            if(!(valid_address = validate_address((void*)*(uint32_t*) argv[2])))
+            case SYS_EXEC:
+                if(!(valid_address = validate_address((void*)*(uint32_t*) argv[1])))
+                    break;
+                f->eax = ((pid_t (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
                 break;
-        case SYS_WAIT:
-            //hex_dump((uint32_t)(f->esp), f->esp, (size_t) PHYS_BASE - (size_t)((uint32_t)(f->esp)), true);
-            f->eax = ((int (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
-            break;
-        default:
-            break;
+            case SYS_READ:
+            case SYS_WRITE:
+                if(!(valid_address = validate_address((void*)*(uint32_t*) argv[2])))
+                    break;
+            case SYS_WAIT:
+                //hex_dump((uint32_t)(f->esp), f->esp, (size_t) PHYS_BASE - (size_t)((uint32_t)(f->esp)), true);
+                f->eax = ((int (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
+                break;
+            default:
+                break;
+        }
     }
 
     if(!valid_address)
@@ -106,34 +108,50 @@ static int get_user (const uint8_t *uaddr) {
  * UDST must be below PHYS_BASE.
  * Returns true if successful,
  * false if a segfault occured.
-static bool put_user (uint8_t *udst, uint8_t byte) {
-    int error_code;
-    asm ("movl $1f, %0; movb %b2, %1; 1:"
-            : "=&a" (error_code), "=m" (*udst) : "q" (byte));
-    return error_code != -1;
-}
-*/
+ static bool put_user (uint8_t *udst, uint8_t byte) {
+ int error_code;
+ asm ("movl $1f, %0; movb %b2, %1; 1:"
+ : "=&a" (error_code), "=m" (*udst) : "q" (byte));
+ return error_code != -1;
+ }
+ */
 
 static void halt (void **argv UNUSED) {
     shutdown_power_off();
 }
 
 static void exit (void **argv) {
+    if(!validate_address(argv[1])) {
+        fail_exit();
+        return;
+    }
     printf("%s: exit(%d)\n", thread_current()->name, *(int*)argv[1]);
     thread_current()->exit_status = *(int*)argv[1];
     thread_exit ();
 }
 
 static pid_t exec (void **argv) {
+    if(!validate_address(argv[1])) {
+        fail_exit();
+        return -1;
+    }
     return process_execute(*(const char**)argv[1]);
 }
 
 static int wait (void **argv) {
+    if(!validate_address(argv[1])) {
+        fail_exit();
+        return -1;
+    }
     return process_wait(*(tid_t*)argv[1]);
 }
 
 static int read (void **argv) {
     int i;
+    if(!(validate_address(argv[1]) && validate_address(argv[2]) && validate_address(argv[3]))) {
+        fail_exit();
+        return 0;
+    }
     switch(*(int*)argv[1]) {
         case STDIN_FILENO:
             for(i = 0; i < *(int*)argv[3]; i++)
@@ -147,6 +165,10 @@ static int read (void **argv) {
 }
 
 static int write (void **argv) {
+    if(!(validate_address(argv[1]) && validate_address(argv[2]) && validate_address(argv[3]))) {
+        fail_exit();
+        return 0;
+    }
     switch(*(int*)argv[1]) {
         case STDOUT_FILENO:
             putbuf(*(const void**)argv[2], *(unsigned*)argv[3]);
