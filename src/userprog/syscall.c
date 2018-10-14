@@ -23,6 +23,8 @@ static pid_t exec (void **argv);
 static int wait (void **argv);
 static int read (void **argv);
 static int write (void **argv);
+static int pibonacci (void **argv);
+static int sum_of_four_integers (void **argv);
 
 void
 syscall_init (void) 
@@ -38,7 +40,7 @@ syscall_handler (struct intr_frame *f UNUSED)
         &halt, &exit, &exec, &wait,
         NULL, NULL, NULL, NULL,
         &read, &write, NULL, NULL,
-        NULL
+        NULL, &pibonacci, &sum_of_four_integers
     };
     /* get arguments for system call,
        address verification will take place later  */
@@ -46,7 +48,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     int i;
     bool valid_address = true;
 
-    for(i = 1; i <= 3; i++)
+    for(i = 1; i <= 4; i++)
         argv[i] = (void*) ((uint32_t)(f->esp + i * sizeof(uint32_t)));
 
     if((valid_address = validate_address(f->esp))) {
@@ -66,6 +68,10 @@ syscall_handler (struct intr_frame *f UNUSED)
                     break;
             case SYS_WAIT:
                 //hex_dump((uint32_t)(f->esp), f->esp, (size_t) PHYS_BASE - (size_t)((uint32_t)(f->esp)), true);
+                f->eax = ((int (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
+                break;
+            case SYS_PIBONACCI:
+            case SYS_SUM_OF_FOUR_INTEGERS:
                 f->eax = ((int (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
                 break;
             default:
@@ -178,4 +184,29 @@ static int write (void **argv) {
             break;
     }
     return 0;
+}
+
+static int pibonacci (void **argv) {
+    int fib[47] = { 0 };
+    int i;
+    if(!validate_address(argv[1])) {
+        fail_exit();
+        return 0;
+    }
+    if(*(int*)argv[1] > 46) {
+        printf("46-th Fibonacci number is the largest number as signed integer.\n");
+        return -1;
+    }
+    fib[1] = 1;
+    for(i = 2; i <= *(int*)argv[1]; i++)
+        fib[i] = fib[i - 1] + fib[i - 2];
+    return fib[*(int*)argv[1]];
+}
+
+static int sum_of_four_integers (void **argv) {
+    if(!(validate_address(argv[1]) && validate_address(argv[2]) && validate_address(argv[3]) && validate_address(argv[4]))) {
+        fail_exit();
+        return 0;
+    }
+    return *(int*)argv[1] + *(int*)argv[2] + *(int*)argv[3] + *(int*)argv[4];
 }

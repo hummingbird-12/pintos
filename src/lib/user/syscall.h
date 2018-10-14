@@ -33,6 +33,8 @@ int write (int fd, const void *buffer, unsigned length);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
+int pibonacci(int n); // custom system call
+int sum_of_four_integers(int a, int b, int c, int d); // custom system call
 
 /* Project 3 and optionally project 4. */
 mapid_t mmap (int fd, void *addr);
