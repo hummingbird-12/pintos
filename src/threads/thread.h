@@ -129,7 +129,6 @@ void thread_unblock (struct thread *);
 struct thread *thread_current (void);
 tid_t thread_tid (void);
 const char *thread_name (void);
-struct thread *thread_child (tid_t child_tid);
 
 void thread_exit (void) NO_RETURN;
 void thread_yield (void);
@@ -145,5 +144,10 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+
+#ifdef USERPROG
+/* Owned by userprog/process.c. */
+struct thread *thread_child (tid_t child_tid);
+#endif
 
 #endif /* threads/thread.h */
