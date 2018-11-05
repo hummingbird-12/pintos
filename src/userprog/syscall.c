@@ -21,8 +21,15 @@ static void halt (void **argv);
 static void exit (void **argv);
 static pid_t exec (void **argv);
 static int wait (void **argv);
+static int create (void **argv);
+static int remove (void **argv);
+static int open (void **argv);
+static int filesize (void **argv);
 static int read (void **argv);
 static int write (void **argv);
+static int seek (void **argv);
+static int tell (void **argv);
+static int close (void **argv);
 static int pibonacci (void **argv);
 static int sum_of_four_integers (void **argv);
 
@@ -38,9 +45,9 @@ syscall_handler (struct intr_frame *f UNUSED)
     /* function pointer to each system call, NULL means not yet implemented  */
     void *syscall_ptr[] = {
         &halt, &exit, &exec, &wait,
-        NULL, NULL, NULL, NULL,
-        &read, &write, NULL, NULL,
-        NULL, &pibonacci, &sum_of_four_integers
+        &create, &remove, &open, &filesize,
+        &read, &write, &seek, &tell,
+        &close, &pibonacci, &sum_of_four_integers
     };
     /* get arguments for system call,
        address verification will take place later  */
@@ -152,6 +159,18 @@ static int wait (void **argv) {
     return process_wait(*(tid_t*)argv[1]);
 }
 
+static bool create(void **argv) {
+}
+
+static bool remove(void **argv) {
+}
+
+static int open(void **argv) {
+}
+
+static int filesize(void **argv) {
+}
+
 static int read (void **argv) {
     int i;
     if(!(validate_address(argv[1]) && validate_address(argv[2]) && validate_address(argv[3]))) {
@@ -184,6 +203,15 @@ static int write (void **argv) {
             break;
     }
     return 0;
+}
+
+static void seek (void **argv) {
+}
+
+static void tell (void **argv) {
+}
+
+static void close (void **argv) {
 }
 
 static int pibonacci (void **argv) {
