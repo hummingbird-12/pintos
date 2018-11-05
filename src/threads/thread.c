@@ -294,8 +294,9 @@ thread_exit (void)
   process_exit ();
 
   thread_current()->exit_signal = true;
-  while((thread_current() -> parent)->child_exit_signal == false)
+  while((thread_current() -> parent)->child_exit_signal == false){
     barrier();
+  }
   
 #endif
 

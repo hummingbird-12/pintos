@@ -121,12 +121,13 @@ process_wait (tid_t child_tid UNUSED)
       e = list_next(e))
   
 
-
+  
   if(thread_child(child_tid) == NULL) return -1;
-
+  printf("DEBUGSTART\n");
   while(thread_child(child_tid)->exit_signal == false){
     barrier();  //Prevent sequential jumbling
   }
+  printf("hi!\n");
   thread_current()->child_exit_signal = true;
   return thread_child(child_tid)->exit_status;
 }
