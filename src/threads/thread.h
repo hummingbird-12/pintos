@@ -94,6 +94,7 @@ struct thread
     struct list_elem elem;              /* List element. */
 
 #ifdef USERPROG
+#define FD_MAX 128
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
     bool exit_called;
@@ -103,6 +104,7 @@ struct thread
     struct list child_list;
     struct list_elem child_elem;
     struct thread *parent;
+    struct file *fd[FD_MAX];                /* File Descriptor */
 #endif
 
     /* Owned by thread.c. */

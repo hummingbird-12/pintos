@@ -460,6 +460,7 @@ is_thread (struct thread *t)
 static void
 init_thread (struct thread *t, const char *name, int priority)
 {
+  int i;
   ASSERT (t != NULL);
   ASSERT (PRI_MIN <= priority && priority <= PRI_MAX);
   ASSERT (name != NULL);
@@ -480,6 +481,8 @@ init_thread (struct thread *t, const char *name, int priority)
     if(t->parent != NULL)
         list_push_back(&(t->parent->child_list), &(t->child_elem));
   }
+  for(i = 0; i < FD_MAX; i++)
+      t->fd[i] = NULL;
 #endif
 }
 

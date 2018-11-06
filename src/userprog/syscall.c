@@ -23,15 +23,15 @@ static void halt (void **argv);
 static void exit (void **argv);
 static pid_t exec (void **argv);
 static int wait (void **argv);
-static int create (void **argv);
-static int remove (void **argv);
+static bool create (void **argv);
+static bool remove (void **argv);
 static int open (void **argv);
 static int filesize (void **argv);
 static int read (void **argv);
 static int write (void **argv);
-static int seek (void **argv);
-static int tell (void **argv);
-static int close (void **argv);
+static void seek (void **argv);
+static unsigned tell (void **argv);
+static void close (void **argv);
 static int pibonacci (void **argv);
 static int sum_of_four_integers (void **argv);
 
@@ -172,12 +172,18 @@ static bool remove(void **argv) {
 }
 
 static int open(void **argv) {
+    struct file *openRes; 
+    int i;
     if(!validate_address((void*)*(uint32_t*) argv[1]) || !validate_address(argv[1])) {
         fail_exit();
         return -1;
     }
-    struct file *openRes = filesys_open(*(const char**) argv[1]);
-    return openRes ? openRes : -1;
+    openRes = filesys_open(*(const char**) argv[1]);
+    if(openRes) {
+        for(i = 0; i < FD_MAX && thread_current()->fd[i]; i++);
+        thread_current()->fd[i] = openRes;
+    }
+    return openRes ? i + 2 : -1;
 }
 
 static int filesize(void **argv) {
@@ -226,7 +232,7 @@ static int write (void **argv) {
 static void seek (void **argv) {
 }
 
-static void tell (void **argv) {
+static unsigned tell (void **argv) {
 }
 
 static void close (void **argv) {
