@@ -172,7 +172,7 @@ static bool remove(void **argv) {
 }
 
 static int open(void **argv) {
-    if(!validate_address(argv[1])) {
+    if(!validate_address((void*)*(uint32_t*) argv[1]) || !validate_address(argv[1])) {
         fail_exit();
         return -1;
     }
