@@ -9,6 +9,8 @@
 #include "threads/vaddr.h"
 #include "userprog/process.h"
 
+#include "filesys/filesys.h"
+
 typedef int pid_t;
 
 static void syscall_handler (struct intr_frame *);
@@ -60,26 +62,30 @@ syscall_handler (struct intr_frame *f UNUSED)
 
     if((valid_address = validate_address(f->esp))) {
         switch(*((int*)f->esp)) {
-            case SYS_HALT:
-            case SYS_EXIT:
+            case SYS_HALT:                      // Project 1
+            case SYS_EXIT:                      // Project 1
+            case SYS_SEEK:                      // Project 2
+            case SYS_CLOSE:                     // Project 2
                 ((void (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
                 break;
-            case SYS_EXEC:
-                if(!(valid_address = validate_address((void*)*(uint32_t*) argv[1])))
-                    break;
+            case SYS_EXEC:                      // Project 1
                 f->eax = ((pid_t (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
                 break;
-            case SYS_READ:
-            case SYS_WRITE:
-                if(!(valid_address = validate_address((void*)*(uint32_t*) argv[2])))
-                    break;
-            case SYS_WAIT:
-                //hex_dump((uint32_t)(f->esp), f->esp, (size_t) PHYS_BASE - (size_t)((uint32_t)(f->esp)), true);
+            case SYS_READ:                      // Project 1
+            case SYS_WRITE:                     // Project 1
+            case SYS_WAIT:                      // Project 1
+            case SYS_PIBONACCI:                 // Project 1
+            case SYS_SUM_OF_FOUR_INTEGERS:      // Project 1
+            case SYS_OPEN:                      // Project 2
+            case SYS_FILESIZE:                  // Project 2
                 f->eax = ((int (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
                 break;
-            case SYS_PIBONACCI:
-            case SYS_SUM_OF_FOUR_INTEGERS:
-                f->eax = ((int (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
+            case SYS_CREATE:                    // Project 2
+            case SYS_REMOVE:                    // Project 2
+                f->eax = ((bool (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
+                break;
+            case SYS_TELL:                      // Project 2
+                f->eax = ((unsigned (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
                 break;
             default:
                 break;
@@ -144,7 +150,7 @@ static void exit (void **argv) {
 }
 
 static pid_t exec (void **argv) {
-    if(!validate_address(argv[1])) {
+    if(!validate_address((void*)*(uint32_t*) argv[1]) || !validate_address(argv[1])) {
         fail_exit();
         return -1;
     }
@@ -166,6 +172,12 @@ static bool remove(void **argv) {
 }
 
 static int open(void **argv) {
+    if(!validate_address(argv[1])) {
+        fail_exit();
+        return -1;
+    }
+    struct file *openRes = filesys_open(*(const char**) argv[1]);
+    return openRes ? openRes : -1;
 }
 
 static int filesize(void **argv) {
@@ -173,7 +185,10 @@ static int filesize(void **argv) {
 
 static int read (void **argv) {
     int i;
-    if(!(validate_address(argv[1]) && validate_address(argv[2]) && validate_address(argv[3]))) {
+    if(
+            !validate_address((void*)*(uint32_t*) argv[2]) ||
+            !(validate_address(argv[1]) && validate_address(argv[2]) && validate_address(argv[3])))
+    {
         fail_exit();
         return 0;
     }
@@ -190,7 +205,10 @@ static int read (void **argv) {
 }
 
 static int write (void **argv) {
-    if(!(validate_address(argv[1]) && validate_address(argv[2]) && validate_address(argv[3]))) {
+    if(
+            !validate_address((void*)*(uint32_t*) argv[2]) ||
+            !(validate_address(argv[1]) && validate_address(argv[2]) && validate_address(argv[3])))
+    {
         fail_exit();
         return 0;
     }
