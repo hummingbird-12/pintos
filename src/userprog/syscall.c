@@ -180,10 +180,10 @@ static int open(void **argv) {
     }
     openRes = filesys_open(*(const char**) argv[1]);
     if(openRes) {
-        for(i = 0; i < FD_MAX && thread_current()->fd[i]; i++);
+        for(i = 2; i < FD_MAX && thread_current()->fd[i]; i++);
         thread_current()->fd[i] = openRes;
     }
-    return openRes ? i + 2 : -1;
+    return openRes ? i : -1;
 }
 
 static int filesize(void **argv) {
@@ -236,6 +236,14 @@ static unsigned tell (void **argv) {
 }
 
 static void close (void **argv) {
+    int i;
+    if(!validate_address(argv[1])) {
+        for(i = 2; i < FD_MAX; i++)
+            if(thread_current()->fd[i])
+                file_close(thread_current()->fd[i]);
+        fail_exit();
+    }
+    file_close(thread_current()->fd[*(int*)argv[1]]);
 }
 
 static int pibonacci (void **argv) {
