@@ -113,6 +113,7 @@ void fail_exit (void) {
         }
     printf("%s: exit(%d)\n", thread_current()->name, -1);
     thread_current()->exit_status = -1;
+    file_allow_write(filesys_open(thread_current()->name));
     thread_exit ();
 }
 
@@ -159,6 +160,7 @@ static void exit (void **argv) {
         }
     printf("%s: exit(%d)\n", thread_current()->name, *(int*)argv[1]);
     thread_current()->exit_status = *(int*)argv[1];
+    file_allow_write(filesys_open(thread_current()->name));
     thread_exit ();
 }
 
@@ -167,6 +169,7 @@ static pid_t exec (void **argv) {
         fail_exit();
         return -1;
     }
+    file_deny_write(filesys_open(*(const char**) argv[1]));
     return process_execute(*(const char**)argv[1]);
 }
 
@@ -243,7 +246,7 @@ static int read (void **argv) {
                 fail_exit();
                 return 0;
             }
-            return file_read(thread_current()->fd[*(int*) argv[1]], *(const void**) argv[2], *(unsigned*) argv[3]);
+            return file_read(thread_current()->fd[*(int*) argv[1]], *(void**) argv[2], *(unsigned*) argv[3]);
             break;
     }
     return 0;
