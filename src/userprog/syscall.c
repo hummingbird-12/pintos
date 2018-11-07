@@ -295,12 +295,15 @@ static unsigned tell (void **argv){
 
 }
 static void close(void **argv){
-  if(!validate_address(argv[1])|| (*(const char**)argv[1] == NULL) || thread_current()->fd[(*(int*)argv[1])]==NULL){
+  if(!validate_address(argv[1]) 
+      || *(int*)argv[1] >= FD_MAX || *(int*)argv[1] <2 || thread_current()->fd[(*(int*)argv[1])]==NULL){
+    
       fail_exit();
       return;
   }
 
   file_close(thread_current()->fd[(*(int*)argv[1])]);
+  thread_current()->fd[(*(int*)argv[1])]=NULL;
   return;
 }
 
