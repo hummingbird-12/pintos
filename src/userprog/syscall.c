@@ -238,6 +238,11 @@ static int read (void **argv) {
             return *(unsigned*)argv[3];
             break;
         default:
+            if(*(int*) argv[1] >= FD_MAX || *(int*) argv[1] < 2 || !thread_current()->fd[*(int*) argv[1]]) {
+                fail_exit();
+                return 0;
+            }
+            return file_read(thread_current()->fd[*(int*) argv[1]], *(void**) argv[2], *(unsigned*) argv[3]);
             break;
     }
     return 0;
@@ -257,6 +262,11 @@ static int write (void **argv) {
             return *(unsigned*)argv[3];
             break;
         default:
+            if(*(int*) argv[1] >= FD_MAX || *(int*) argv[1] < 2 || !thread_current()->fd[*(int*) argv[1]]) {
+                fail_exit();
+                return 0;
+            }
+            return file_write(thread_current()->fd[*(int*) argv[1]], *(void**) argv[2], *(unsigned*) argv[3]);
             break;
     }
     return 0;
@@ -281,7 +291,7 @@ static unsigned tell (void **argv) {
     }
     if(*(int*) argv[1] >= FD_MAX || *(int*) argv[1] < 2 || !thread_current()->fd[*(int*) argv[1]]) {
         fail_exit();
-        return;
+        return 0;
     }
     return file_tell(thread_current()->fd[*(int*) argv[1]]);
 }
