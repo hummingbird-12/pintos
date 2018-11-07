@@ -44,13 +44,6 @@ syscall_init (void)
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
 
-struct file{
-  struct inode *inode;
-  off_t pos;
-  bool deny_write;
-};
-
-
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
@@ -213,6 +206,7 @@ static int open(void **argv){
     for(i=2 ; i<FD_MAX ; i++)
       if(thread_current()->fd[i] == NULL){
         thread_current()->fd[i] = fp;
+        file_deny_write(fp);
         return i;
       }
   }
@@ -232,31 +226,32 @@ static int read (void **argv) {
     int i;
     int fd;
     if(!(validate_address(argv[1]) && validate_address(argv[2]) && validate_address(argv[3]) 
-          &&(validate_address((void*)*(uint32_t*) argv[2]))) 
-        || (*(int*)argv[1] > 1 && thread_current()->fd[*(int*)argv[1]] == NULL )){
+          && validate_address((void*)*(uint32_t*) argv[2])) ){
         fail_exit();
         return 0;
     }
-    switch(*(int*)argv[1]) {
+    switch((fd = *(int*)argv[1])) {
         case STDIN_FILENO:
             for(i = 0; i < *(int*)argv[3]; i++)
                 (*(char**)argv[2])[i] = input_getc();
             return *(unsigned*)argv[3];
             break;
         default:
-           if(thread_current()->fd[fd]->deny_write)  file_deny_write(thread_current()->fd[fd]);
+            if(fd >= FD_MAX || fd <2 || thread_current()->fd[fd]==NULL){
+              fail_exit();
+              return 0;
+            }
             
-            return file_write(thread_current()->fd[fd],*(const void**)argv[1],*(unsigned*)argv[2]);
+            return file_read(thread_current()->fd[fd], *(void**) argv[2],*(unsigned*)argv[3]);
             break;
     }
     return 0;
 }
 
 static int write (void **argv) {
-  int fd;
+  int fd, bytes=0;
     if(!( validate_address(argv[1]) && validate_address(argv[2]) && validate_address(argv[3])
-          &&(validate_address((void*)*(uint32_t*) argv[2])) ) 
-        || ( *(int*)argv[1] > 1 && thread_current()->fd[*(int*)argv[1]] != NULL )) {
+          &&validate_address((void*)*(uint32_t*) argv[2]) ) ) {
         fail_exit();
         return 0;
     }
@@ -266,12 +261,18 @@ static int write (void **argv) {
             return *(unsigned*)argv[3];
             break;
         default:
-            if(thread_current()->fd[fd]->deny_write == true )  file_deny_write(thread_current()->fd[fd]);
+            if(fd>=FD_MAX || fd <2 || thread_current()->fd[fd]==NULL){
+              fail_exit();
+              return 0;
+            }
+            file_allow_write(thread_current()->fd[fd]);
             
-            return file_write(thread_current()->fd[fd],*(const void**)argv[1],*(unsigned*)argv[2]);
+            bytes = file_write(thread_current()->fd[fd],*(const void**)argv[2],*(unsigned*)argv[3]);
             break;
     }
-    return 0;
+    
+    file_deny_write(thread_current()->fd[fd]);
+    return bytes;
 }
 
 
