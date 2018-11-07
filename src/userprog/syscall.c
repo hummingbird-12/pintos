@@ -206,6 +206,7 @@ static int open(void **argv) {
     if(openRes) {
         for(i = 2; i < FD_MAX && thread_current()->fd[i]; i++);
         thread_current()->fd[i] = openRes;
+        file_deny_write(openRes);
     }
     return openRes ? i : -1;
 }
@@ -242,13 +243,14 @@ static int read (void **argv) {
                 fail_exit();
                 return 0;
             }
-            return file_read(thread_current()->fd[*(int*) argv[1]], *(void**) argv[2], *(unsigned*) argv[3]);
+            return file_read(thread_current()->fd[*(int*) argv[1]], *(const void**) argv[2], *(unsigned*) argv[3]);
             break;
     }
     return 0;
 }
 
 static int write (void **argv) {
+    int byteCnt;
     if(
             !validate_address((void*)*(uint32_t*) argv[2]) ||
             !(validate_address(argv[1]) && validate_address(argv[2]) && validate_address(argv[3])))
@@ -266,7 +268,10 @@ static int write (void **argv) {
                 fail_exit();
                 return 0;
             }
-            return file_write(thread_current()->fd[*(int*) argv[1]], *(void**) argv[2], *(unsigned*) argv[3]);
+            file_allow_write(thread_current()->fd[*(int*) argv[1]]);
+            byteCnt = file_write(thread_current()->fd[*(int*) argv[1]], *(const void**) argv[2], *(unsigned*) argv[3]);
+            file_deny_write(thread_current()->fd[*(int*) argv[1]]);
+            return byteCnt;
             break;
     }
     return 0;
