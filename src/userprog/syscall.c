@@ -185,6 +185,11 @@ static bool create(void **argv) {
 }
 
 static bool remove(void **argv) {
+    if(!validate_address((void*)*(uint32_t*) argv[1]) || !validate_address(argv[1])) {
+        fail_exit();
+        return -1;
+    }
+    return filesys_remove(*(const char**) argv[1]);
 }
 
 static int open(void **argv) {
