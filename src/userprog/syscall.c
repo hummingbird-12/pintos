@@ -215,7 +215,11 @@ static int filesize(void **argv) {
         fail_exit();
         return 0;
     }
-    return thread_current()->fd[*(int*)argv[1]] ? file_length(thread_current()->fd[*(int*)argv[1]]) : 0;
+    if(*(int*) argv[1] >= FD_MAX || *(int*) argv[1] < 2 || !thread_current()->fd[*(int*) argv[1]]) {
+        fail_exit();
+        return 0;
+    }
+    return file_length(thread_current()->fd[*(int*)argv[1]]);
 }
 
 static int read (void **argv) {
@@ -263,6 +267,10 @@ static void seek (void **argv) {
         fail_exit();
         return;
     }
+    if(*(int*) argv[1] >= FD_MAX || *(int*) argv[1] < 2 || !thread_current()->fd[*(int*) argv[1]]) {
+        fail_exit();
+        return;
+    }
     file_seek(thread_current()->fd[*(int*) argv[1]], *(unsigned*) argv[2]);
 }
 
@@ -270,6 +278,10 @@ static unsigned tell (void **argv) {
     if(!validate_address(argv[1])) {
         fail_exit();
         return 0;
+    }
+    if(*(int*) argv[1] >= FD_MAX || *(int*) argv[1] < 2 || !thread_current()->fd[*(int*) argv[1]]) {
+        fail_exit();
+        return;
     }
     return file_tell(thread_current()->fd[*(int*) argv[1]]);
 }
