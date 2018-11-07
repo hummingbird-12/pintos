@@ -113,6 +113,7 @@ static bool validate_address (const void *addr) {
 }
 
 void fail_exit (void) {
+    file_allow_write(filesys_open(thread_current()->name));
     printf("%s: exit(%d)\n", thread_current()->name, -1);
     thread_current()->exit_status = -1;
     thread_exit ();
@@ -149,21 +150,24 @@ static void halt (void **argv UNUSED) {
 }
 
 static void exit (void **argv) {
+
     if(!validate_address(argv[1])) {
         fail_exit();
         return;
     }
+    
+    file_allow_write(filesys_open(thread_current()->name));
     printf("%s: exit(%d)\n", thread_current()->name, *(int*)argv[1]);
     thread_current()->exit_status = *(int*)argv[1];
     thread_exit ();
 }
 
 static pid_t exec (void **argv) {
-
     if(!validate_address(argv[1])|| !(validate_address((void*)*(uint32_t*) argv[1]))) {
         fail_exit();
         return -1;
-    }
+    } 
+    
     return process_execute(*(const char**)argv[1]);
 }
 
