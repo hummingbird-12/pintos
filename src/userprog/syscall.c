@@ -169,7 +169,6 @@ static pid_t exec (void **argv) {
         fail_exit();
         return -1;
     }
-    file_deny_write(filesys_open(*(const char**) argv[1]));
     return process_execute(*(const char**)argv[1]);
 }
 

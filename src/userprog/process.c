@@ -53,10 +53,12 @@ process_execute (const char *cmd_input)
   strlcpy (file_name, cmd_copy, PGSIZE);
   strlcpy (cmd_copy, cmd_input, PGSIZE);
 
-  /* Try opening executable file. */
+  /* Try opening executable file to see if it exists in file system. */
   file = filesys_open (file_name);
   if (file == NULL) 
     return TID_ERROR;
+  file_deny_write(file);
+  file_deny_write(file); // twice because file_close() calls file_allow_write()
   file_close (file);
 
   /* Create a new thread to execute FILE_NAME. */
