@@ -264,6 +264,11 @@ static void seek (void **argv) {
 }
 
 static unsigned tell (void **argv) {
+    if(!validate_address(argv[1])) {
+        fail_exit();
+        return 0;
+    }
+    return file_tell(thread_current()->fd[*(int*) argv[1]]);
 }
 
 static void close (void **argv) {
