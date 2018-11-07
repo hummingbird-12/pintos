@@ -104,6 +104,9 @@ static bool validate_address (const void *addr) {
 }
 
 void fail_exit (void) {
+    for(i = 2; i < FD_MAX; i++)
+        if(thread_current()->fd[i])
+            file_close(thread_current()->fd[i]);
     printf("%s: exit(%d)\n", thread_current()->name, -1);
     thread_current()->exit_status = -1;
     thread_exit ();
@@ -144,6 +147,9 @@ static void exit (void **argv) {
         fail_exit();
         return;
     }
+    for(i = 2; i < FD_MAX; i++)
+        if(thread_current()->fd[i])
+            file_close(thread_current()->fd[i]);
     printf("%s: exit(%d)\n", thread_current()->name, *(int*)argv[1]);
     thread_current()->exit_status = *(int*)argv[1];
     thread_exit ();
@@ -238,10 +244,8 @@ static unsigned tell (void **argv) {
 static void close (void **argv) {
     int i;
     if(!validate_address(argv[1])) {
-        for(i = 2; i < FD_MAX; i++)
-            if(thread_current()->fd[i])
-                file_close(thread_current()->fd[i]);
         fail_exit();
+        return;
     }
     file_close(thread_current()->fd[*(int*)argv[1]]);
 }
