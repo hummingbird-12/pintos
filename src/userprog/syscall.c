@@ -8,8 +8,11 @@
 #include "devices/input.h"
 #include "threads/vaddr.h"
 #include "userprog/process.h"
-
+#include "filesys/file.h"
+#include "filesys/filesys.h"
 typedef int pid_t;
+
+
 
 static void syscall_handler (struct intr_frame *);
 
@@ -26,11 +29,27 @@ static int write (void **argv);
 static int pibonacci (void **argv);
 static int sum_of_four_integers (void **argv);
 
+
+static bool create(void **argv);
+static bool remove(void **argv);
+static int open(void **argv);
+static int filesize(void **argv);
+static void seek(void **argv);
+static unsigned tell (void **argv);
+static void close(void **argv);
+  
 void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
+
+struct file{
+  struct inode *inode;
+  off_t pos;
+  bool deny_write;
+};
+
 
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
@@ -38,9 +57,9 @@ syscall_handler (struct intr_frame *f UNUSED)
     /* function pointer to each system call, NULL means not yet implemented  */
     void *syscall_ptr[] = {
         &halt, &exit, &exec, &wait,
-        NULL, NULL, NULL, NULL,
-        &read, &write, NULL, NULL,
-        NULL, &pibonacci, &sum_of_four_integers
+        &create, &remove, &open, &filesize,
+        &read, &write, &seek, &tell,
+        &close, &pibonacci, &sum_of_four_integers
     };
     /* get arguments for system call,
        address verification will take place later  */
@@ -53,26 +72,36 @@ syscall_handler (struct intr_frame *f UNUSED)
 
     if((valid_address = validate_address(f->esp))) {
         switch(*((int*)f->esp)) {
+          //////////////////////////////proj1///////////////////////////////
             case SYS_HALT:
             case SYS_EXIT:
                 ((void (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
                 break;
             case SYS_EXEC:
-                if(!(valid_address = validate_address((void*)*(uint32_t*) argv[1])))
-                    break;
                 f->eax = ((pid_t (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
                 break;
             case SYS_READ:
             case SYS_WRITE:
-                if(!(valid_address = validate_address((void*)*(uint32_t*) argv[2])))
-                    break;
             case SYS_WAIT:
-                //hex_dump((uint32_t)(f->esp), f->esp, (size_t) PHYS_BASE - (size_t)((uint32_t)(f->esp)), true);
-                f->eax = ((int (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
-                break;
             case SYS_PIBONACCI:
             case SYS_SUM_OF_FOUR_INTEGERS:
                 f->eax = ((int (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
+                break;
+            /////////////////////////////////proj2/////////////////////////// 
+            case SYS_CREATE:
+            case SYS_REMOVE:
+                f->eax = ((bool (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
+                break;
+            case SYS_OPEN:
+            case SYS_FILESIZE:
+                f->eax = ((int (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
+                break;
+            case SYS_SEEK:
+            case SYS_CLOSE:
+                ((void (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
+                break;
+            case SYS_TELL:
+                f->eax = ((unsigned (*) (void**)) syscall_ptr[*((int*) f->esp)]) (argv);
                 break;
             default:
                 break;
@@ -137,7 +166,8 @@ static void exit (void **argv) {
 }
 
 static pid_t exec (void **argv) {
-    if(!validate_address(argv[1])) {
+
+    if(!validate_address(argv[1])|| !(validate_address((void*)*(uint32_t*) argv[1]))) {
         fail_exit();
         return -1;
     }
@@ -152,9 +182,58 @@ static int wait (void **argv) {
     return process_wait(*(tid_t*)argv[1]);
 }
 
+static bool create(void **argv){
+  if(!validate_address(argv[1])|| (*(const char**)argv[1] == NULL) || !(validate_address((void*)*(uint32_t*) argv[1])) ){
+      fail_exit();
+      return false;
+  }
+
+   return filesys_create(*(const char**)argv[1],*(unsigned *)argv[2]);
+}
+
+static bool remove(void **argv){
+  if(!validate_address(argv[1])|| (*(const char**)argv[1] == NULL) ||!(validate_address((void*)*(uint32_t*) argv[1])) ){
+      fail_exit();
+      return false;
+  }
+
+   return filesys_remove(*(const char**)argv[1]);
+}
+
+static int open(void **argv){
+  struct file* fp; 
+  int i;
+ 
+  if(!validate_address(argv[1])|| (*(const char**)argv[1] == NULL)||!(validate_address((void*)*(uint32_t*) argv[1])) ){
+      fail_exit();
+      return -1;
+  }
+  
+  if((fp = filesys_open(*(const char**)argv[1])) != NULL){
+    for(i=2 ; i<FD_MAX ; i++)
+      if(thread_current()->fd[i] == NULL){
+        thread_current()->fd[i] = fp;
+        return i;
+      }
+  }
+
+  return -1;
+}
+
+static int filesize(void **argv){
+  if((thread_current()->fd[(*(int*)argv[1])])==NULL ){
+    fail_exit();
+    return -1;
+  }
+  return file_length(thread_current()->fd[(*(int*)argv[1])]); 
+}
+
 static int read (void **argv) {
     int i;
-    if(!(validate_address(argv[1]) && validate_address(argv[2]) && validate_address(argv[3]))) {
+    int fd;
+    if(!(validate_address(argv[1]) && validate_address(argv[2]) && validate_address(argv[3]) 
+          &&(validate_address((void*)*(uint32_t*) argv[2]))) 
+        || (*(int*)argv[1] > 1 && thread_current()->fd[*(int*)argv[1]] == NULL )){
         fail_exit();
         return 0;
     }
@@ -165,26 +244,66 @@ static int read (void **argv) {
             return *(unsigned*)argv[3];
             break;
         default:
+           if(thread_current()->fd[fd]->deny_write)  file_deny_write(thread_current()->fd[fd]);
+            
+            return file_write(thread_current()->fd[fd],*(const void**)argv[1],*(unsigned*)argv[2]);
             break;
     }
     return 0;
 }
 
 static int write (void **argv) {
-    if(!(validate_address(argv[1]) && validate_address(argv[2]) && validate_address(argv[3]))) {
+  int fd;
+    if(!( validate_address(argv[1]) && validate_address(argv[2]) && validate_address(argv[3])
+          &&(validate_address((void*)*(uint32_t*) argv[2])) ) 
+        || ( *(int*)argv[1] > 1 && thread_current()->fd[*(int*)argv[1]] != NULL )) {
         fail_exit();
         return 0;
     }
-    switch(*(int*)argv[1]) {
+    switch(fd= *(int*)argv[1]) {
         case STDOUT_FILENO:
             putbuf(*(const void**)argv[2], *(unsigned*)argv[3]);
             return *(unsigned*)argv[3];
             break;
         default:
+            if(thread_current()->fd[fd]->deny_write == true )  file_deny_write(thread_current()->fd[fd]);
+            
+            return file_write(thread_current()->fd[fd],*(const void**)argv[1],*(unsigned*)argv[2]);
             break;
     }
     return 0;
 }
+
+
+static void seek(void **argv){
+ 
+  if(!validate_address(argv[1])|| (*(const char**)argv[1] == NULL) || thread_current()->fd[(*(int*)argv[1])]==NULL){
+      fail_exit();
+      return;
+  }
+
+  file_seek(thread_current()->fd[(*(int*)argv[1])],*(unsigned *)argv[2]) ;
+  return;
+}
+static unsigned tell (void **argv){
+  if(!validate_address(argv[1])|| (*(const char**)argv[1] == NULL) || thread_current()->fd[(*(int*)argv[1])]==NULL){
+      fail_exit();
+      return 0;
+  }
+
+  return file_tell(thread_current()->fd[(*(int*)argv[1])]);
+
+}
+static void close(void **argv){
+  if(!validate_address(argv[1])|| (*(const char**)argv[1] == NULL) || thread_current()->fd[(*(int*)argv[1])]==NULL){
+      fail_exit();
+      return;
+  }
+
+  file_close(thread_current()->fd[(*(int*)argv[1])]);
+  return;
+}
+
 
 static int pibonacci (void **argv) {
     int fib[47] = { 0 };
