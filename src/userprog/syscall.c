@@ -105,8 +105,10 @@ static bool validate_address (const void *addr) {
 
 void fail_exit (void) {
     for(i = 2; i < FD_MAX; i++)
-        if(thread_current()->fd[i])
+        if(thread_current()->fd[i]) {
             file_close(thread_current()->fd[i]);
+            thread_current()->fd[*(int*)argv[1]] = NULL;
+        }
     printf("%s: exit(%d)\n", thread_current()->name, -1);
     thread_current()->exit_status = -1;
     thread_exit ();
@@ -148,8 +150,10 @@ static void exit (void **argv) {
         return;
     }
     for(i = 2; i < FD_MAX; i++)
-        if(thread_current()->fd[i])
+        if(thread_current()->fd[i]) {
             file_close(thread_current()->fd[i]);
+            thread_current()->fd[*(int*)argv[1]] = NULL;
+        }
     printf("%s: exit(%d)\n", thread_current()->name, *(int*)argv[1]);
     thread_current()->exit_status = *(int*)argv[1];
     thread_exit ();
@@ -172,6 +176,12 @@ static int wait (void **argv) {
 }
 
 static bool create(void **argv) {
+    if(!validate_address((void*)*(uint32_t*) argv[1]) || !validate_address(argv[1]) ||
+            !validate_address(argv[2])) {
+        fail_exit();
+        return -1;
+    }
+    return filesys_create(*(const char**) argv[1], *(unsigned*) argv[2]);
 }
 
 static bool remove(void **argv) {
@@ -193,6 +203,11 @@ static int open(void **argv) {
 }
 
 static int filesize(void **argv) {
+    if(!validate_address(argv[1])) {
+        fail_exit();
+        return 0;
+    }
+    return thread_current()->fd[*(int*)argv[1]] ? file_length(thread_current()->fd[*(int*)argv[1]]) : 0;
 }
 
 static int read (void **argv) {
@@ -248,6 +263,7 @@ static void close (void **argv) {
         return;
     }
     file_close(thread_current()->fd[*(int*)argv[1]]);
+    thread_current()->fd[*(int*)argv[1]] = NULL;
 }
 
 static int pibonacci (void **argv) {
