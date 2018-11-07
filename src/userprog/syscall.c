@@ -256,6 +256,11 @@ static int write (void **argv) {
 }
 
 static void seek (void **argv) {
+    if(!(validate_address(argv[1]) && validate_address(argv[2]))) {
+        fail_exit();
+        return 0;
+    }
+    file_seek(*(int*) argv[1], *(unsigned*) argv[2]);
 }
 
 static unsigned tell (void **argv) {
