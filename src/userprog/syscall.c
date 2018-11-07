@@ -279,6 +279,10 @@ static void close (void **argv) {
         fail_exit();
         return;
     }
+    if(*(int*) argv[1] >= FD_MAX || *(int*) argv[1] < 2 || !thread_current()->fd[*(int*) argv[1]]) {
+        fail_exit();
+        return;
+    }
     file_close(thread_current()->fd[*(int*)argv[1]]);
     thread_current()->fd[*(int*)argv[1]] = NULL;
 }
