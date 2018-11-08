@@ -14,6 +14,7 @@
 #include "threads/flags.h"
 #include "threads/init.h"
 #include "threads/interrupt.h"
+#include "threads/malloc.h"
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
@@ -55,11 +56,13 @@ process_execute (const char *cmd_input)
 
   /* Try opening executable file to see if it exists in file system. */
   file = filesys_open (file_name);
-  if (file == NULL) 
+  if (file == NULL) {
+    palloc_free_page (cmd_copy);
+    palloc_free_page (file_name);
     return TID_ERROR;
-  file_deny_write(file);
-  file_deny_write(file); // twice because file_close() calls file_allow_write()
-  file_close (file);
+  }
+  file_deny_write(file); // apply deny write to protect executable file
+  free(file); // frees file, but inode still exists
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, cmd_copy);
