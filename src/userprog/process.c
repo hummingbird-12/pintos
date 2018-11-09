@@ -32,7 +32,6 @@ process_execute (const char *cmd_input)
 {
   char *cmd_copy, *file_name, *tok_tracker;
   tid_t tid;
-  // struct file *file = NULL;
 
   /* Make a copy of CMD_INPUT.
      Otherwise there's a race between the caller and load(). */
@@ -53,15 +52,6 @@ process_execute (const char *cmd_input)
   }
   strlcpy (file_name, cmd_copy, PGSIZE);
   strlcpy (cmd_copy, cmd_input, PGSIZE);
-
-  /* Try opening executable file to see if it exists in file system. 
-  file = filesys_open (file_name);
-  if (file == NULL) {
-    palloc_free_page (cmd_copy);
-    palloc_free_page (file_name);
-    return TID_ERROR;
-  }
-  */
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, cmd_copy);
@@ -86,7 +76,10 @@ start_process (void *file_name_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+  success = thread_current()->load_success = load (file_name, &if_.eip, &if_.esp);
+
+  /* [SEMAPHORE] parent can now continue exec() */
+  sema_up(&(thread_current()->sema_load));
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -117,18 +110,24 @@ process_wait (tid_t child_tid UNUSED)
 {
   struct thread *child_t = thread_child(child_tid);
   int child_exit;
-
+  /* invalid or couldn't find child */
   if(child_t == NULL)
       return -1;
 
-  if(thread_current()->on_wait)
+  /* child is already being waited */
+  if(child_t->on_wait)
       return -1;
-  thread_current()->on_wait = true;
+  child_t->on_wait = true;
 
-  while(child_t->exit_called == false)
-      barrier();
+  /* [SEMAPHORE] parent waits for child to call exit() */
+  sema_down(&child_t->sema_wait);
+
   child_exit = child_t->exit_status;
-  thread_current()->wait_child = true;
+  list_remove(&child_t->child_elem);
+
+  /* [SEMAPHORE] child can now continue exit() */
+  sema_up(&child_t->sema_remove);
+  child_t->on_wait = false;
 
   return child_exit;
 }
@@ -138,19 +137,16 @@ void
 process_exit (void)
 {
   struct thread *cur = thread_current ();
+  struct thread *child_t;
+  struct list_elem *child_e;
   uint32_t *pd;
   int i;
 
+  // close all file descriptors
   for(i = FD_SELF; i < FD_MAX; i++) {
       file_close(thread_current()->fd[i]);
       thread_current()->fd[i] = NULL;
   }
-
-  thread_current()->exit_called = true;
-
-  while(cur->parent->wait_child == false)
-      barrier();
-  cur->parent->wait_child = cur->parent->on_wait = false;
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -168,6 +164,23 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+
+  // remove all childs from child_list
+  for(child_e = list_begin(&cur->child_list);
+        child_e != list_end(&cur->child_list);) {
+      // get child thread
+      child_t = list_entry(child_e, struct thread, child_elem);
+      // remove current and get next child element
+      child_e = list_remove(child_e);
+      // [SEMAPHORE] allow child threads to exit
+      sema_up (&child_t->sema_remove);
+  }
+
+  /* [SEMAPHORE] allow parent to continue wait() */
+  sema_up(&cur->sema_wait);
+
+  /* [SEMAPHORE] wait until removed from parent's child_list */
+  sema_down(&cur->sema_remove);
 }
 
 /* Sets up the CPU for running user code in the current

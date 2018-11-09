@@ -291,7 +291,6 @@ thread_exit (void)
   ASSERT (!intr_context ());
 
 #ifdef USERPROG
-  // thread_current ()->exit_called = true;
   process_exit ();
 #endif
 
@@ -474,7 +473,7 @@ init_thread (struct thread *t, const char *name, int priority)
   list_push_back (&all_list, &t->allelem);
 
 #ifdef USERPROG
-  t->exit_called = t->wait_child = t->on_wait = false;
+  t->load_success = false;
   t->parent = list_size(&all_list) == 1 ? NULL : thread_current();
   if(t != idle_thread) {
     list_init (&(t->child_list));
@@ -483,6 +482,9 @@ init_thread (struct thread *t, const char *name, int priority)
   }
   for(i = 0; i < FD_MAX; i++)
       t->fd[i] = NULL;
+  sema_init(&t->sema_load, 0);
+  sema_init(&t->sema_wait, 0);
+  sema_init(&t->sema_remove, 0);
 #endif
 }
 

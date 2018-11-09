@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include "synch.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -98,14 +99,20 @@ struct thread
 #define FD_SELF 2
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
-    bool exit_called;
-    bool wait_child;
-    bool on_wait;
-    int exit_status;
-    struct list child_list;
-    struct list_elem child_elem;
-    struct thread *parent;
-    struct file *fd[FD_MAX];                /* File Descriptor */
+
+    bool on_wait;                       /* whether is being waited */
+    int exit_status;                    /* thread's exit status */
+    bool load_success;                  /* whether load was successful */
+
+    struct list child_list;             /* list of child threads */
+    struct list_elem child_elem;        /* list_elem for child threads */
+    struct thread *parent;              /* parent thread */
+
+    struct file *fd[FD_MAX];            /* file descriptor */
+
+    struct semaphore sema_load;         /* UP: child's load() finished, DOWN: parent's exec() */
+    struct semaphore sema_wait;         /* UP: child's termination, DOWN: parent's wait() */
+    struct semaphore sema_remove;       /* UP: parent's list_remove(), DOWN: child's termination */
 #endif
 
     /* Owned by thread.c. */

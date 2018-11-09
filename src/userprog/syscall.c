@@ -156,11 +156,36 @@ static void exit (void **argv) {
 }
 
 static pid_t exec (void **argv) {
+    pid_t child_pid;
+    struct thread *child_t;
+    struct list_elem *child_e;
+
     if(!validate_address((void*)*(uint32_t*) argv[1]) || !validate_address(argv[1])) {
         fail_exit();
         return -1;
     }
-    return process_execute(*(const char**)argv[1]);
+    child_pid = process_execute(*(const char**)argv[1]);
+    
+    if(child_pid == TID_ERROR)
+        return TID_ERROR;
+    
+    /* [SEMAPHORE] parent waits for child to finish load()  */
+    if((child_t = thread_child(child_pid)))
+        sema_down(&child_t->sema_load);
+
+    /* child's load() was not successful */
+    if(!child_t->load_success)
+        return TID_ERROR;
+
+    for(child_e = list_begin(&(thread_current()->child_list));
+                child_e != list_end(&(thread_current()->child_list));
+                child_e = list_next(child_e)) {
+      child_t = list_entry(child_e, struct thread, child_elem);
+      if(!child_t->load_success)
+        return process_wait(child_pid);
+    }
+
+    return child_pid;
 }
 
 static int wait (void **argv) {
