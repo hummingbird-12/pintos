@@ -12,6 +12,8 @@
 #include "filesys/filesys.h"
 #include "filesys/file.h"
 
+#include "threads/synch.h"
+
 typedef int pid_t;
 
 static void syscall_handler (struct intr_frame *);
@@ -36,10 +38,13 @@ static void close (void **argv);
 static int pibonacci (void **argv);
 static int sum_of_four_integers (void **argv);
 
+struct lock lock_filesys;
+
 void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  lock_init (&lock_filesys);
 }
 
 static void
@@ -190,7 +195,9 @@ static int open(void **argv) {
         fail_exit();
         return -1;
     }
+    lock_acquire (&lock_filesys);
     openRes = filesys_open(*(const char**) argv[1]);
+    lock_release (&lock_filesys);
     if(openRes) {
         for(i = FD_SELF + 1; i < FD_MAX && thread_current()->fd[i]; i++);
         thread_current()->fd[i] = openRes;
@@ -203,7 +210,7 @@ static int filesize(void **argv) {
         fail_exit();
         return 0;
     }
-    if(*(int*) argv[1] >= FD_MAX || *(int*) argv[1] < 2 || !thread_current()->fd[*(int*) argv[1]]) {
+    if(*(int*) argv[1] >= FD_MAX || *(int*) argv[1] < FD_SELF || !thread_current()->fd[*(int*) argv[1]]) {
         fail_exit();
         return 0;
     }
@@ -211,7 +218,7 @@ static int filesize(void **argv) {
 }
 
 static int read (void **argv) {
-    int i;
+    int i, byteCnt;
     if(
             !validate_address((void*)*(uint32_t*) argv[2]) ||
             !(validate_address(argv[1]) && validate_address(argv[2]) && validate_address(argv[3])))
@@ -219,24 +226,30 @@ static int read (void **argv) {
         fail_exit();
         return 0;
     }
+    lock_acquire (&lock_filesys);
     switch(*(int*)argv[1]) {
         case STDIN_FILENO:
             for(i = 0; i < *(int*)argv[3]; i++)
                 (*(char**)argv[2])[i] = input_getc();
+            lock_release (&lock_filesys);
             return *(unsigned*)argv[3];
             break;
         default:
-            if(*(int*) argv[1] >= FD_MAX || *(int*) argv[1] < 2 || !thread_current()->fd[*(int*) argv[1]]) {
+            if(*(int*) argv[1] >= FD_MAX || *(int*) argv[1] < FD_SELF || !thread_current()->fd[*(int*) argv[1]]) {
+                lock_release (&lock_filesys);
                 fail_exit();
                 return 0;
             }
-            return file_read(thread_current()->fd[*(int*) argv[1]], *(void**) argv[2], *(unsigned*) argv[3]);
+            byteCnt = file_read(thread_current()->fd[*(int*) argv[1]], *(void**) argv[2], *(unsigned*) argv[3]);
+            lock_release (&lock_filesys);
+            return byteCnt;
             break;
     }
     return 0;
 }
 
 static int write (void **argv) {
+    int byteCnt;
     if(
             !validate_address((void*)*(uint32_t*) argv[2]) ||
             !(validate_address(argv[1]) && validate_address(argv[2]) && validate_address(argv[3])))
@@ -244,17 +257,22 @@ static int write (void **argv) {
         fail_exit();
         return 0;
     }
+    lock_acquire (&lock_filesys);
     switch(*(int*)argv[1]) {
         case STDOUT_FILENO:
             putbuf(*(const void**)argv[2], *(unsigned*)argv[3]);
+            lock_release (&lock_filesys);
             return *(unsigned*)argv[3];
             break;
         default:
-            if(*(int*) argv[1] >= FD_MAX || *(int*) argv[1] < 2 || !thread_current()->fd[*(int*) argv[1]]) {
+            if(*(int*) argv[1] >= FD_MAX || *(int*) argv[1] < FD_SELF || !thread_current()->fd[*(int*) argv[1]]) {
+                lock_release (&lock_filesys);
                 fail_exit();
                 return 0;
             }
-            return file_write(thread_current()->fd[*(int*) argv[1]], *(const void**) argv[2], *(unsigned*) argv[3]);
+            byteCnt = file_write(thread_current()->fd[*(int*) argv[1]], *(const void**) argv[2], *(unsigned*) argv[3]);
+            lock_release (&lock_filesys);
+            return byteCnt;
             break;
     }
     return 0;
@@ -265,7 +283,7 @@ static void seek (void **argv) {
         fail_exit();
         return;
     }
-    if(*(int*) argv[1] >= FD_MAX || *(int*) argv[1] < 2 || !thread_current()->fd[*(int*) argv[1]]) {
+    if(*(int*) argv[1] >= FD_MAX || *(int*) argv[1] < FD_SELF || !thread_current()->fd[*(int*) argv[1]]) {
         fail_exit();
         return;
     }
@@ -277,7 +295,7 @@ static unsigned tell (void **argv) {
         fail_exit();
         return 0;
     }
-    if(*(int*) argv[1] >= FD_MAX || *(int*) argv[1] < 2 || !thread_current()->fd[*(int*) argv[1]]) {
+    if(*(int*) argv[1] >= FD_MAX || *(int*) argv[1] < FD_SELF || !thread_current()->fd[*(int*) argv[1]]) {
         fail_exit();
         return 0;
     }
@@ -289,7 +307,7 @@ static void close (void **argv) {
         fail_exit();
         return;
     }
-    if(*(int*) argv[1] >= FD_MAX || *(int*) argv[1] < 2 || !thread_current()->fd[*(int*) argv[1]]) {
+    if(*(int*) argv[1] >= FD_MAX || *(int*) argv[1] < FD_SELF || !thread_current()->fd[*(int*) argv[1]]) {
         fail_exit();
         return;
     }
