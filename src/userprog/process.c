@@ -31,7 +31,6 @@ process_execute (const char *cmd_input)
   char *cmd_copy, *file_name, *tok_tracker;
   tid_t tid;
   struct file *file = NULL;
-
   /* Make a copy of CMD_INPUT.
      Otherwise there's a race between the caller and load(). */
   cmd_copy = palloc_get_page (0);
@@ -53,22 +52,21 @@ process_execute (const char *cmd_input)
   strlcpy (cmd_copy, cmd_input, PGSIZE);
 
 
-
-  /* Try opening executable file. */
-//  file = filesys_open (file_name);
-//  if (file == NULL) 
-//    return TID_ERROR;
-//  file_deny_write(file);
-//  file_deny_write(file);
-//  file_close (file);
-
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, cmd_copy);
+  
+  sema_down(&(thread_current()->sema_load));
   if (tid == TID_ERROR) {
     palloc_free_page (cmd_copy);
     palloc_free_page (file_name);
   }
-  sema_down(&thread_current()->sema_load);
+/*
+  child_t = thread_child(child_tid);
+  if(child_t != NULL){
+    if(child_t->exit_status == -1)
+      return process_wait(current_thread());
+  }
+*/
   return tid;
 }
 
@@ -86,11 +84,12 @@ start_process (void *file_name_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
-///////////
-  sema_up(&thread_current()->parent->sema_load);
+  success =load (file_name, &if_.eip, &if_.esp);
+  thread_current()->load_success = success;
   /* If load failed, quit. */
   palloc_free_page (file_name);
+  
+  sema_up(&thread_current()->parent->sema_load);
   if (!success) 
     thread_exit ();
 

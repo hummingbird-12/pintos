@@ -167,12 +167,16 @@ static void exit (void **argv) {
 }
 
 static pid_t exec (void **argv) {
-    if(!validate_address(argv[1])|| !(validate_address((void*)*(uint32_t*) argv[1]))) {
+  pid_t pid;  
+  if(!validate_address(argv[1])|| !(validate_address((void*)*(uint32_t*) argv[1]))) {
         fail_exit();
         return -1;
     } 
     
-    return process_execute(*(const char**)argv[1]);
+  pid = process_execute(*(const char**)argv[1]);
+  if(!(thread_child(pid)->load_success))
+    return -1;
+  return pid;
 }
 
 static int wait (void **argv) {
