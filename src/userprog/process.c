@@ -56,12 +56,12 @@ process_execute (const char *cmd_input)
 
 
   /* Try opening executable file. */
-  file = filesys_open (file_name);
-  if (file == NULL) 
-    return TID_ERROR;
-  file_deny_write(file);
-  file_deny_write(file);
-  file_close (file);
+//  file = filesys_open (file_name);
+//  if (file == NULL) 
+//    return TID_ERROR;
+//  file_deny_write(file);
+//  file_deny_write(file);
+//  file_close (file);
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, cmd_copy);
@@ -139,6 +139,13 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+  int i;
+
+  for(i = 2 ; i<FD_MAX ; i++){
+    file_close(thread_current()->fd[i]);
+    thread_current()->fd[i] = NULL;
+  }
+  thread_current()->exit_called = true;
 
   while(cur->parent->wait_child == false)
       barrier();
@@ -287,6 +294,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", cmd_copy);
       goto done; 
     }
+  t->fd[2] = file;
+  file_deny_write(file);
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -397,7 +406,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
   if(cmd_copy != NULL)
     palloc_free_page (cmd_copy);
   return success;

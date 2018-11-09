@@ -104,7 +104,7 @@ struct thread
     struct list_elem child_elem;
     struct thread *parent;
 
-    struct file* fd[FD_MAX];
+    struct file* fd[FD_MAX];//file descriptor
 #endif
 
     /* Owned by thread.c. */

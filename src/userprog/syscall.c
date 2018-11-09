@@ -113,7 +113,7 @@ static bool validate_address (const void *addr) {
 }
 
 void fail_exit (void) {
-    file_allow_write(filesys_open(thread_current()->name));
+//    file_allow_write(filesys_open(thread_current()->name));
     printf("%s: exit(%d)\n", thread_current()->name, -1);
     thread_current()->exit_status = -1;
     thread_exit ();
@@ -156,7 +156,7 @@ static void exit (void **argv) {
         return;
     }
     
-    file_allow_write(filesys_open(thread_current()->name));
+    //file_allow_write(filesys_open(thread_current()->name));
     printf("%s: exit(%d)\n", thread_current()->name, *(int*)argv[1]);
     thread_current()->exit_status = *(int*)argv[1];
     thread_exit ();
@@ -210,7 +210,7 @@ static int open(void **argv){
     for(i=2 ; i<FD_MAX ; i++)
       if(thread_current()->fd[i] == NULL){
         thread_current()->fd[i] = fp;
-        file_deny_write(fp);
+       // file_deny_write(fp);
         return i;
       }
   }
@@ -269,13 +269,13 @@ static int write (void **argv) {
               fail_exit();
               return 0;
             }
-            file_allow_write(thread_current()->fd[fd]);
+           // file_allow_write(thread_current()->fd[fd]);
             
             bytes = file_write(thread_current()->fd[fd],*(const void**)argv[2],*(unsigned*)argv[3]);
             break;
     }
     
-    file_deny_write(thread_current()->fd[fd]);
+   // file_deny_write(thread_current()->fd[fd]);
     return bytes;
 }
 
