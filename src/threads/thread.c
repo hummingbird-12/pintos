@@ -291,7 +291,7 @@ thread_exit (void)
   ASSERT (!intr_context ());
 
 #ifdef USERPROG
-  thread_current ()->exit_called = true;
+  // thread_current ()->exit_called = true;
   process_exit ();
 #endif
 

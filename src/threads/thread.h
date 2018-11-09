@@ -94,7 +94,8 @@ struct thread
     struct list_elem elem;              /* List element. */
 
 #ifdef USERPROG
-#define FD_MAX 128
+#define FD_MAX 131                      /* 128 + STDIN + STOUT + CURFILE */
+#define FD_SELF 2
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
     bool exit_called;

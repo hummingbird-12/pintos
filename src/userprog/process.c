@@ -32,7 +32,7 @@ process_execute (const char *cmd_input)
 {
   char *cmd_copy, *file_name, *tok_tracker;
   tid_t tid;
-  struct file *file = NULL;
+  // struct file *file = NULL;
 
   /* Make a copy of CMD_INPUT.
      Otherwise there's a race between the caller and load(). */
@@ -54,15 +54,14 @@ process_execute (const char *cmd_input)
   strlcpy (file_name, cmd_copy, PGSIZE);
   strlcpy (cmd_copy, cmd_input, PGSIZE);
 
-  /* Try opening executable file to see if it exists in file system. */
+  /* Try opening executable file to see if it exists in file system. 
   file = filesys_open (file_name);
   if (file == NULL) {
     palloc_free_page (cmd_copy);
     palloc_free_page (file_name);
     return TID_ERROR;
   }
-  file_deny_write(file); // apply deny write to protect executable file
-  free(file); // frees file, but inode still exists
+  */
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, cmd_copy);
@@ -140,6 +139,14 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+  int i;
+
+  for(i = FD_SELF; i < FD_MAX; i++) {
+      file_close(thread_current()->fd[i]);
+      thread_current()->fd[i] = NULL;
+  }
+
+  thread_current()->exit_called = true;
 
   while(cur->parent->wait_child == false)
       barrier();
@@ -288,6 +295,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", cmd_copy);
       goto done; 
     }
+  t->fd[FD_SELF] = file;
+  file_deny_write(file);
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -398,7 +407,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
   if(cmd_copy != NULL)
     palloc_free_page (cmd_copy);
   return success;

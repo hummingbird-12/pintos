@@ -105,15 +105,8 @@ static bool validate_address (const void *addr) {
 }
 
 void fail_exit (void) {
-    int i;
-    for(i = 2; i < FD_MAX; i++)
-        if(thread_current()->fd[i]) {
-            file_close(thread_current()->fd[i]);
-            thread_current()->fd[i] = NULL;
-        }
     printf("%s: exit(%d)\n", thread_current()->name, -1);
     thread_current()->exit_status = -1;
-    file_allow_write(filesys_open(thread_current()->name));
     thread_exit ();
 }
 
@@ -148,19 +141,12 @@ static void halt (void **argv UNUSED) {
 }
 
 static void exit (void **argv) {
-    int i;
     if(!validate_address(argv[1])) {
         fail_exit();
         return;
     }
-    for(i = 2; i < FD_MAX; i++)
-        if(thread_current()->fd[i]) {
-            file_close(thread_current()->fd[i]);
-            thread_current()->fd[i] = NULL;
-        }
     printf("%s: exit(%d)\n", thread_current()->name, *(int*)argv[1]);
     thread_current()->exit_status = *(int*)argv[1];
-    file_allow_write(filesys_open(thread_current()->name));
     thread_exit ();
 }
 
@@ -206,9 +192,8 @@ static int open(void **argv) {
     }
     openRes = filesys_open(*(const char**) argv[1]);
     if(openRes) {
-        for(i = 2; i < FD_MAX && thread_current()->fd[i]; i++);
+        for(i = FD_SELF + 1; i < FD_MAX && thread_current()->fd[i]; i++);
         thread_current()->fd[i] = openRes;
-        file_deny_write(openRes);
     }
     return openRes ? i : -1;
 }
@@ -252,7 +237,6 @@ static int read (void **argv) {
 }
 
 static int write (void **argv) {
-    int byteCnt;
     if(
             !validate_address((void*)*(uint32_t*) argv[2]) ||
             !(validate_address(argv[1]) && validate_address(argv[2]) && validate_address(argv[3])))
@@ -270,10 +254,7 @@ static int write (void **argv) {
                 fail_exit();
                 return 0;
             }
-            file_allow_write(thread_current()->fd[*(int*) argv[1]]);
-            byteCnt = file_write(thread_current()->fd[*(int*) argv[1]], *(const void**) argv[2], *(unsigned*) argv[3]);
-            file_deny_write(thread_current()->fd[*(int*) argv[1]]);
-            return byteCnt;
+            return file_write(thread_current()->fd[*(int*) argv[1]], *(const void**) argv[2], *(unsigned*) argv[3]);
             break;
     }
     return 0;
