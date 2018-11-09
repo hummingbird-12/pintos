@@ -291,7 +291,7 @@ thread_exit (void)
   ASSERT (!intr_context ());
 
 #ifdef USERPROG
-  thread_current ()->exit_called = true;
+  //thread_current ()->exit_called = true;
   process_exit ();
 #endif
 
@@ -482,7 +482,11 @@ init_thread (struct thread *t, const char *name, int priority)
         list_push_back(&(t->parent->child_list), &(t->child_elem));
   }
   
-  for(i=0; i<FD_MAX;i++) t->fd[i] = NULL; 
+  for(i=0; i<FD_MAX;i++) t->fd[i] = NULL;
+  
+  sema_init(&t->sema_load, 0);
+  sema_init(&t->sema_child, 0);
+  sema_init(&t->sema_remove, 0);
 #endif
 }
 

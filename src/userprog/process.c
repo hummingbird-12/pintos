@@ -21,7 +21,6 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
-
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -69,6 +68,7 @@ process_execute (const char *cmd_input)
     palloc_free_page (cmd_copy);
     palloc_free_page (file_name);
   }
+  sema_down(&thread_current()->sema_load);
   return tid;
 }
 
@@ -87,7 +87,8 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
-
+///////////
+  sema_up(&thread_current()->parent->sema_load);
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
@@ -116,21 +117,28 @@ int
 process_wait (tid_t child_tid UNUSED) 
 {
   struct thread *child_t = thread_child(child_tid);
+  struct list_elem *e;
   int child_exit;
 
   if(child_t == NULL)
       return -1;
 
-  if(thread_current()->on_wait)
+  if(child_t->on_wait)
       return -1;
-  thread_current()->on_wait = true;
-
+  child_t->on_wait = true;
+  
+  sema_down(&(child_t->sema_child));
+  child_exit = child_t->exit_status;
+  list_remove(&(child_t->child_elem));
+  sema_up(&(child_t->sema_remove));
+  return child_exit;
+  /*
   while(child_t->exit_called == false)
       barrier();
   child_exit = child_t->exit_status;
   thread_current()->wait_child = true;
 
-  return child_exit;
+  return child_exit;*/
 }
 
 /* Free the current process's resources. */
@@ -147,8 +155,6 @@ process_exit (void)
   }
   thread_current()->exit_called = true;
 
-  while(cur->parent->wait_child == false)
-      barrier();
   cur->parent->wait_child = cur->parent->on_wait = false;
 
   /* Destroy the current process's page directory and switch back
@@ -167,6 +173,8 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+  sema_up(&(cur->sema_child));
+  sema_down(&(cur->sema_remove));
 }
 
 /* Sets up the CPU for running user code in the current

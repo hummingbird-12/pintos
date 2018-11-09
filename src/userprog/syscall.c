@@ -10,6 +10,7 @@
 #include "userprog/process.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
+#include "threads/synch.h"
 typedef int pid_t;
 
 
@@ -37,11 +38,14 @@ static int filesize(void **argv);
 static void seek(void **argv);
 static unsigned tell (void **argv);
 static void close(void **argv);
+
+struct lock lock_filesys;
   
 void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  lock_init (&lock_filesys);
 }
 
 static void
@@ -206,14 +210,18 @@ static int open(void **argv){
       return -1;
   }
   
+  lock_acquire(&lock_filesys);
   if((fp = filesys_open(*(const char**)argv[1])) != NULL){
+    lock_release(&lock_filesys);
+
     for(i=2 ; i<FD_MAX ; i++)
       if(thread_current()->fd[i] == NULL){
         thread_current()->fd[i] = fp;
-       // file_deny_write(fp);
         return i;
       }
   }
+  else
+    lock_release(&lock_filesys);
 
   return -1;
 }
@@ -228,25 +236,30 @@ static int filesize(void **argv){
 
 static int read (void **argv) {
     int i;
-    int fd;
+    int fd, bytes;
     if(!(validate_address(argv[1]) && validate_address(argv[2]) && validate_address(argv[3]) 
           && validate_address((void*)*(uint32_t*) argv[2])) ){
         fail_exit();
         return 0;
     }
+    lock_acquire(&lock_filesys);
     switch((fd = *(int*)argv[1])) {
         case STDIN_FILENO:
             for(i = 0; i < *(int*)argv[3]; i++)
                 (*(char**)argv[2])[i] = input_getc();
+            lock_release(&lock_filesys);
             return *(unsigned*)argv[3];
             break;
         default:
             if(fd >= FD_MAX || fd <2 || thread_current()->fd[fd]==NULL){
+              lock_release(&lock_filesys);
               fail_exit();
               return 0;
             }
             
-            return file_read(thread_current()->fd[fd], *(void**) argv[2],*(unsigned*)argv[3]);
+            bytes = file_read(thread_current()->fd[fd], *(void**) argv[2],*(unsigned*)argv[3]);
+            lock_release(&lock_filesys);
+            return bytes;
             break;
     }
     return 0;
@@ -259,19 +272,23 @@ static int write (void **argv) {
         fail_exit();
         return 0;
     }
+    lock_acquire(&lock_filesys);
     switch(fd= *(int*)argv[1]) {
         case STDOUT_FILENO:
             putbuf(*(const void**)argv[2], *(unsigned*)argv[3]);
+            lock_release(&lock_filesys);
             return *(unsigned*)argv[3];
             break;
         default:
             if(fd>=FD_MAX || fd <2 || thread_current()->fd[fd]==NULL){
+              lock_release(&lock_filesys);
               fail_exit();
               return 0;
             }
            // file_allow_write(thread_current()->fd[fd]);
             
             bytes = file_write(thread_current()->fd[fd],*(const void**)argv[2],*(unsigned*)argv[3]);
+            lock_release(&lock_filesys);
             break;
     }
     
