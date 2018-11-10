@@ -473,13 +473,15 @@ init_thread (struct thread *t, const char *name, int priority)
   list_push_back (&all_list, &t->allelem);
 
 #ifdef USERPROG
-  t->load_success = false;
-  t->parent = list_size(&all_list) == 1 ? NULL : thread_current();
-  if(t != idle_thread) {
+  t->on_wait = t->load_success = false;
+  t->exit_status = -2;
+  t->parent = list_size(&all_list) == 1 ? NULL : running_thread();
+ // if(t != idle_thread) {
     list_init (&(t->child_list));
-    if(t->parent != NULL)
+    if(t->parent != NULL) {
         list_push_back(&(t->parent->child_list), &(t->child_elem));
-  }
+    }
+ // }
   for(i = 0; i < FD_MAX; i++)
       t->fd[i] = NULL;
   sema_init(&t->sema_load, 0);

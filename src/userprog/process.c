@@ -36,9 +36,9 @@ process_execute (const char *cmd_input)
   /* Make a copy of CMD_INPUT.
      Otherwise there's a race between the caller and load(). */
   cmd_copy = palloc_get_page (0);
-  file_name = palloc_get_page (0);
   if (cmd_copy == NULL)
     return TID_ERROR;
+  file_name = palloc_get_page (0);
   if (file_name == NULL) {
       palloc_free_page (cmd_copy);
       return TID_ERROR;
