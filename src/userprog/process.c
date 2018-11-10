@@ -30,6 +30,8 @@ process_execute (const char *cmd_input)
 {
   char *cmd_copy, *file_name, *tok_tracker;
   tid_t tid;
+  struct thread* t;
+  struct list_elem *e;
   struct file *file = NULL;
   /* Make a copy of CMD_INPUT.
      Otherwise there's a race between the caller and load(). */
@@ -60,13 +62,8 @@ process_execute (const char *cmd_input)
     palloc_free_page (cmd_copy);
     palloc_free_page (file_name);
   }
-/*
-  child_t = thread_child(child_tid);
-  if(child_t != NULL){
-    if(child_t->exit_status == -1)
-      return process_wait(current_thread());
-  }
-*/
+  palloc_free_page(file_name);
+  
   return tid;
 }
 
@@ -91,7 +88,7 @@ start_process (void *file_name_)
   
   sema_up(&thread_current()->parent->sema_load);
   if (!success) 
-    thread_exit ();
+    thread_exit();
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -131,19 +128,14 @@ process_wait (tid_t child_tid UNUSED)
   list_remove(&(child_t->child_elem));
   sema_up(&(child_t->sema_remove));
   return child_exit;
-  /*
-  while(child_t->exit_called == false)
-      barrier();
-  child_exit = child_t->exit_status;
-  thread_current()->wait_child = true;
-
-  return child_exit;*/
 }
 
 /* Free the current process's resources. */
 void
 process_exit (void)
 {
+  struct thread *child_t;
+  struct list_elem *e,*tmp;
   struct thread *cur = thread_current ();
   uint32_t *pd;
   int i;
@@ -172,6 +164,14 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+
+
+ for(e = list_begin(&cur->child_list) ; e != list_end(&cur->child_list);){
+    child_t = list_entry(e, struct thread, child_elem);
+    e = list_remove(e);
+    sema_up(&child_t->sema_remove);
+  }
+
   sema_up(&(cur->sema_child));
   sema_down(&(cur->sema_remove));
 }
@@ -415,6 +415,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* We arrive here whether the load is successful or not. */
   if(cmd_copy != NULL)
     palloc_free_page (cmd_copy);
+  
   return success;
 }
 
