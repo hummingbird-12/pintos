@@ -158,40 +158,28 @@ static void exit (void **argv) {
 static pid_t exec (void **argv) {
     pid_t child_pid;
     struct thread *child_t;
-    struct list_elem *child_e;
 
     if(!validate_address((void*)*(uint32_t*) argv[1]) || !validate_address(argv[1])) {
         fail_exit();
         return -1;
     }
+    lock_acquire (&lock_filesys);
     child_pid = process_execute(*(const char**)argv[1]);
+    lock_release (&lock_filesys);
     
-    if(child_pid == TID_ERROR) {
+    child_t = thread_child(child_pid);
+    /* [SEMAPHORE] parent waits for child to finish load()  */
+    sema_down(&child_t->sema_load);
+
+    if(child_pid == TID_ERROR || child_t->exit_status == -1) {
         process_wait(child_pid);
         return TID_ERROR;
     }
-    
-    /* [SEMAPHORE] parent waits for child to finish load()  */
-    if((child_t = thread_child(child_pid)))
-        sema_down(&child_t->sema_load);
 
     /* child's load() was not successful */
     if(!child_t->load_success) {
-          // printf("[DEBUG] Will wait for %s %d\n", child_t->name, child_t->tid);
         process_wait(child_pid);
         return TID_ERROR;
-    }
-    
-    
-    for (child_e = list_begin(&thread_current()->child_list);
-            child_e != list_end(&thread_current()->child_list);
-            child_e = list_next(child_e)) {
-            child_t = list_entry(child_e, struct thread, child_elem);
-            if (child_t->exit_status != -2) {
-                printf("[DEBUG] Will wait for %s %d\n", child_t->name, child_t->tid);
-                //return TID_ERROR;
-                return process_wait(child_pid);
-            }         
     }
     
     return child_pid;

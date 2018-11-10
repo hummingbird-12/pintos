@@ -14,7 +14,6 @@
 #include "threads/flags.h"
 #include "threads/init.h"
 #include "threads/interrupt.h"
-#include "threads/malloc.h"
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
@@ -57,8 +56,8 @@ process_execute (const char *cmd_input)
   tid = thread_create (file_name, PRI_DEFAULT, start_process, cmd_copy);
   if (tid == TID_ERROR) {
     palloc_free_page (cmd_copy);
-    palloc_free_page (file_name);
   }
+  palloc_free_page (file_name);
   return tid;
 }
 
@@ -77,6 +76,9 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = thread_current()->load_success = load (file_name, &if_.eip, &if_.esp);
+
+  if(!success)
+    thread_current()->exit_status = -1;
 
   /* [SEMAPHORE] parent can now continue exec() */
   sema_up(&(thread_current()->sema_load));
