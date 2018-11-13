@@ -160,7 +160,6 @@ static void exit (void **argv) {
         return;
     }
     
-    //file_allow_write(filesys_open(thread_current()->name));
     printf("%s: exit(%d)\n", thread_current()->name, *(int*)argv[1]);
     thread_current()->exit_status = *(int*)argv[1];
     thread_exit ();
@@ -289,14 +288,12 @@ static int write (void **argv) {
               fail_exit();
               return 0;
             }
-           // file_allow_write(thread_current()->fd[fd]);
             
             bytes = file_write(thread_current()->fd[fd],*(const void**)argv[2],*(unsigned*)argv[3]);
             lock_release(&lock_filesys);
             break;
     }
     
-   // file_deny_write(thread_current()->fd[fd]);
     return bytes;
 }
 

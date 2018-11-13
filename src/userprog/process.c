@@ -30,9 +30,6 @@ process_execute (const char *cmd_input)
 {
   char *cmd_copy, *file_name, *tok_tracker;
   tid_t tid;
-  struct thread* t;
-  struct list_elem *e;
-  struct file *file = NULL;
   /* Make a copy of CMD_INPUT.
      Otherwise there's a race between the caller and load(). */
   cmd_copy = palloc_get_page (0);
@@ -113,7 +110,6 @@ int
 process_wait (tid_t child_tid UNUSED) 
 {
   struct thread *child_t = thread_child(child_tid);
-  struct list_elem *e;
   int child_exit;
 
   if(child_t == NULL)
@@ -135,7 +131,7 @@ void
 process_exit (void)
 {
   struct thread *child_t;
-  struct list_elem *e,*tmp;
+  struct list_elem *e;
   struct thread *cur = thread_current ();
   uint32_t *pd;
   int i;
@@ -546,7 +542,7 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        *esp = PHYS_BASE;// - 12;
+        *esp = PHYS_BASE;
       else
         palloc_free_page (kpage);
     }
