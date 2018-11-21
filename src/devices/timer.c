@@ -93,11 +93,19 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
+  struct thread *cur = thread_current ();
+  enum intr_level old_level;
   int64_t start = timer_ticks ();
 
+  ASSERT (!intr_context ());
   ASSERT (intr_get_level () == INTR_ON);
-  while (timer_elapsed (start) < ticks) 
-    thread_yield ();
+
+  old_level = intr_disable ();
+  cur->wakeup_tick = start + ticks;
+  cur->status = THREAD_BLOCKED;
+  list_push_back (&sleep_list, &cur->sleep_elem);
+  schedule();
+  intr_set_level (old_level);
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be

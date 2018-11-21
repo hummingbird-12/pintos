@@ -120,6 +120,7 @@ struct thread
 
     /* Owned by timer.c */
     int64_t wakeup_tick;                /* Tick count when thread will be woken up. */
+    struct list_elem sleep_elem;        /* List element. */
   };
 
 /* If false (default), use round-robin scheduler.
