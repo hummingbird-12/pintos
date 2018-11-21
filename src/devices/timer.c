@@ -106,8 +106,7 @@ timer_sleep (int64_t ticks)
   
   /* blocking thread */
   list_push_back (&sleep_list, &cur->sleep_elem);
-  cur->status = THREAD_BLOCKED;
-  schedule();
+  thread_blcok(); 
   
   intr_set_level(old_level);
 }
