@@ -119,8 +119,8 @@ struct thread
     unsigned magic;                     /* Detects stack overflow. */
 
     /* Owned by timer.c */
-    int64_t wakeup_tick;               /* Tick count when thread will be woken up*/
-    struct list_elem sleep_elem;  
+    int64_t wakeup_tick;                /* Tick count when thread will be woken up*/
+    struct list_elem sleep_elem;        /* element of sleep_list*/ 
 };
 
 /* If false (default), use round-robin scheduler.
