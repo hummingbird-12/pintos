@@ -30,6 +30,11 @@ static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
 
+
+/* List of sleeping processes by timer_sleep() */
+static struct list sleep_list;
+
+
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
    and registers the corresponding interrupt. */
 void
@@ -89,10 +94,10 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
-  int64_t start = timer_ticks ();
+  int64_t start = timer_ticks ();       //get current time
 
-  ASSERT (intr_get_level () == INTR_ON);
-  while (timer_elapsed (start) < ticks) 
+  ASSERT (intr_get_level () == INTR_ON);  //set for timer interrupt
+  while (timer_elapsed (start) < ticks)
     thread_yield ();
 }
 
