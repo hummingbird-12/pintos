@@ -42,6 +42,7 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
+  list_init(&sleep_list);
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -98,7 +99,7 @@ timer_sleep (int64_t ticks)
   enum intr_level old_level;
   struct thread *cur = thread_current();
 
-  ASSERT (!intr_context());
+  //ASSERT (!intr_context());
   ASSERT (intr_get_level () == INTR_ON);  //set for timer interrupt
   old_level = intr_disable();
   
@@ -106,7 +107,7 @@ timer_sleep (int64_t ticks)
   
   /* blocking thread */
   list_push_back (&sleep_list, &cur->sleep_elem);
-  thread_blcok(); 
+  thread_block(); 
   
   intr_set_level(old_level);
 }
