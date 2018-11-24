@@ -6,6 +6,11 @@
 #include <stdint.h>
 #include "synch.h"
 
+/* Project3 - Pintos Thread */
+#ifndef USERPROG
+extern bool thread_prior_aging;
+#endif
+
 /* States in a thread's life cycle. */
 enum thread_status
   {
