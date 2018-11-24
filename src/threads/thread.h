@@ -159,6 +159,9 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
+/* Scheduler related operations */
+bool prio_less_func (const struct list_elem*, const struct list_elem*, void*);
+
 #ifdef USERPROG
 /* Owned by userprog/process.c. */
 struct thread *thread_child (tid_t child_tid);
