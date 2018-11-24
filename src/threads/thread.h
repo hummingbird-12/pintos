@@ -4,7 +4,12 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
-#include "synch.h"
+#include "threads/synch.h"
+
+#ifndef USERPROG
+extern bool thread_prior_aging;
+#endif
+
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -158,6 +163,7 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+bool prio_less_func(const struct list_elem *prev, const struct list_elem *post, void *aux);
 
 #ifdef USERPROG
 /* Owned by userprog/process.c. */

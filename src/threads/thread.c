@@ -54,7 +54,9 @@ static long long user_ticks;    /* # of timer ticks in user programs. */
 /* Scheduling. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
-
+#ifndef USERPROG
+bool thread_prior_aging;
+#endif
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
@@ -138,6 +140,15 @@ thread_tick (void)
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
+
+  /* project #3 */
+#ifndef USERPROG
+ // thread_wake_up();
+
+  //if(thread_prior_aging == true)
+    //thread_aging();
+
+#endif
 }
 
 /* Prints thread statistics. */
@@ -210,6 +221,10 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+  /* Preempt if priority of current  thread < new thread */
+  if(priority > thread_get_priority())  thread_yield();
+  
+
   return tid;
 }
 
@@ -246,7 +261,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  list_insert_ordered (&ready_list, &t->elem, prio_less_func, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -317,11 +332,18 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+    //list_insert_ordered();
+    list_insert_ordered(&ready_list, &cur->elem, prio_less_func, NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
 }
+
+/* compare function for priority */
+bool prio_less_func(const struct list_elem *prev, const struct list_elem *post, void *aux){
+  return list_entry(prev, struct thread, elem)->priority > list_entry(post,struct thread, elem)->priority;
+}
+
 
 /* Invoke function 'func' on all threads, passing along 'aux'.
    This function must be called with interrupts off. */
@@ -344,7 +366,10 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  int cur_prio = thread_current()->priority;
+  thread_current()->priority = new_priority;
+
+  if(cur_prio > new_priority) thread_yield();
 }
 
 /* Returns the current thread's priority. */
@@ -460,7 +485,7 @@ is_thread (struct thread *t)
 static void
 init_thread (struct thread *t, const char *name, int priority)
 {
-  int i;
+  //int i;
   ASSERT (t != NULL);
   ASSERT (PRI_MIN <= priority && priority <= PRI_MAX);
   ASSERT (name != NULL);
