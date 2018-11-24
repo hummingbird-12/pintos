@@ -145,10 +145,10 @@ thread_tick (void)
 
   /* Project 3 - Pintos Thread */
 #ifndef USERPROG
-  thread_wake_up();
+  // thread_wake_up();
 
-  if(thread_prior_aging == true)
-      thread_aging();
+  // if(thread_prior_aging == true)
+      // thread_aging();
 #endif
 }
 
@@ -221,6 +221,10 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
+
+  /* Preempt if new thread's priority is higher than current's */
+  if(priority > thread_get_priority())
+      thread_yield();
 
   return tid;
 }
@@ -356,7 +360,8 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  if((thread_current()->priority = thread_current()->priority) > (thread_current()->priority = new_priority))
+      thread_yield();
 }
 
 /* Returns the current thread's priority. */
