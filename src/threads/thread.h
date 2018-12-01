@@ -10,6 +10,10 @@
 #ifndef USERPROG
 extern bool thread_prior_aging;
 extern int load_avg;                       /* load_avg value */
+
+/* for priority aging */
+void refresh_load_avg();
+void refresh_recent_cpu();
 #endif
 
 /* States in a thread's life cycle. */
@@ -95,8 +99,7 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
-    int nice;                           /* nice value for priority change */
-    int rec_cpu;                        /* amount of recent CPU time a thread received */
+    
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
@@ -129,6 +132,10 @@ struct thread
     /* Owned by timer.c */
     int64_t wakeup_tick;                /* Tick count when thread will be woken up. */
     struct list_elem sleep_elem;        /* List element. */
+
+    /* for priority aging */
+    int nice;                           /* nice value for priority change */
+    int rec_cpu;                        /* amount of recent CPU time a thread received */
   };
 
 /* If false (default), use round-robin scheduler.

@@ -63,7 +63,7 @@ int load_avg;
 #define FRAC_BITS 14
 #define FX_PNT_SHIFT (1<<FRAC_BITS)
 static int int_to_fxP(int i);
-static int fxP_to_int(int f);
+static int fxP_to_int(int f, bool round);
 static int mult_fxP(int fx, int fy);
 static int div_fxP(int fx, int fy);
 #endif
@@ -112,6 +112,10 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+
+  /* Set up for priority aging */
+  initial_thread->nice = 0;
+  initial_thread->rec_cpu = 0;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -382,9 +386,15 @@ thread_get_priority (void)
 
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice UNUSED) 
+thread_set_nice (int new_nice) 
 {
-  /* Not yet implemented. */
+  struct thread *cur = thread_current();
+  cur->nice = new_nice;
+  cur->priority = PRI_MAX - fxP_to_int(div_fxP(cur->rec_cpu, int_to_fxP(4)), false) - (cur->nice * 2);
+
+  /* yield CPU if new priority is lower than the highest in ready queue */
+  if(!list_empty(&ready_list) && list_front(&ready_list)->priority > cur->priority)
+      thread_yield();
 }
 
 /* Returns the current thread's nice value. */
@@ -398,16 +408,14 @@ thread_get_nice (void)
 int
 thread_get_load_avg (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  return fxP_to_int(mult_fxP(int_to_fxP(100), load_avg), true);
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  return fxP_to_int(mult_fxP(int_to_fxP(100), thread_current()->rec_cpu), true);
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -496,6 +504,10 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
+
+  /* for priority aging */
+  t->nice = running_thread()->nice;
+  t->rec_cpu = running_thread()->rec_cpu;
 
 #ifdef USERPROG
   int i;
@@ -655,7 +667,13 @@ static int int_to_fxP(int i) {
 }
 
 /* Returns the conversion from fixed-point format to corresponding integer. */
-static int fxP_to_int(int f) {
+static int fxP_to_int(int f, bool round) {
+    if(round) {
+        if(f > 0)
+            f += FX_PNT_SHIFT / 2;
+        else if(f < 0)
+            f -= FX_PNT_SHIFT / 2;
+    }
     return f / FX_PNT_SHIFT;
 }
 
@@ -667,5 +685,11 @@ static int mult_fxP(int fx, int fy) {
 /* Returns the division of two fixed-point numbers. */
 static int div_fxP(int fx, int fy) {
     return ((int64_t) fx) * FX_PNT_SHIFT / fy;
+}
+
+void refresh_load_avg() {
+}
+
+void refresh_recent_cpu() {
 }
 #endif
