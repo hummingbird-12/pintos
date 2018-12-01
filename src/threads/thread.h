@@ -99,9 +99,16 @@ struct thread
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
+    
+    /* priority aging */
+    int recent_cpu;
+    int nice;
+
+
 #ifdef USERPROG
 #define FD_MAX 131                      /* 128 + STDIN + STOUT + CURFILE */
 #define FD_SELF 2
+
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
 
@@ -132,6 +139,7 @@ struct thread
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 extern bool thread_mlfqs;
+extern bool thread_aging;
 
 void thread_init (void);
 void thread_start (void);
