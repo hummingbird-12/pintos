@@ -51,6 +51,7 @@ static long long idle_ticks;    /* # of timer ticks spent idle. */
 static long long kernel_ticks;  /* # of timer ticks in kernel threads. */
 static long long user_ticks;    /* # of timer ticks in user programs. */
 
+
 /* Scheduling. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
@@ -73,6 +74,44 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
+static int load_avg;
+
+#define F 1<<14
+
+/* float */
+int add_float(int a, int b, int fa_flag, int fb_flag){
+  if(fa_flag != fb_flag){
+    a = fa_flag ? a:a*F;
+    b = fb_flag ? b:b*F;
+  }
+  return a+b;
+}
+int sub_float(int a, int b, int fa_flag, int fb_flag){
+  
+  if(fa_flag != fb_flag){
+    a = fa_flag ? a : a*F;
+    b = fb_flag ? b : b*F;
+  }
+  return a-b;
+}
+
+int multi_float(int a, int b, int fa_flag, int fb_flag){
+  if(fb_flag == fa_flag && fa_flag){
+    return (int)( (int64_t)a * b / F);
+  }
+  return a*b;
+
+}
+int div_float(int a, int b, int a_flag, int b_flag){
+  
+  if(fb_flag == fa_flag && fa_flag){
+    return (int)(  ((int64_t)a * F)/b);
+  }
+  return a/b;
+}
+
+
+
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -87,6 +126,9 @@ static tid_t allocate_tid (void);
 
    It is not safe to call thread_current() until this function
    finishes. */
+
+
+
 void
 thread_init (void) 
 {
@@ -101,6 +143,8 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+  initial_thread->tid = recent_cpu = 0;
+  initial_thread->nice = 0;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -391,7 +435,7 @@ int
 thread_get_nice (void) 
 {
   /* Not yet implemented. */
-  return 0;
+  return thread_current()->nice;
 }
 
 /* Returns 100 times the system load average. */
@@ -399,7 +443,7 @@ int
 thread_get_load_avg (void) 
 {
   /* Not yet implemented. */
-  return 0;
+  return multi_float(100, load_avg, 0,1)/F;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
@@ -497,7 +541,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
-
+  t->nice = runnig_thread()->nice;
+  t->recent_cpu = runnig_thread()->recent_cpu;
+ 
 #ifdef USERPROG
   t->on_wait = t->load_success = false;
   t->exit_status = -2;
