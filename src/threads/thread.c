@@ -57,6 +57,15 @@ static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 /* for Project 3 - Pintos Thread */
 #ifndef USERPROG
 bool thread_prior_aging;
+int load_avg;
+
+/* For Fixed-Point Real Arithmetic */
+#define FRAC_BITS 14
+#define FX_PNT_SHIFT (1<<FRAC_BITS)
+static int int_to_fxP(int i);
+static int fxP_to_int(int f);
+static int mult_fxP(int fx, int fy);
+static int div_fxP(int fx, int fy);
 #endif
 
 /* If false (default), use round-robin scheduler.
@@ -382,8 +391,7 @@ thread_set_nice (int nice UNUSED)
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  return thread_current()->nice;
 }
 
 /* Returns 100 times the system load average. */
@@ -477,7 +485,6 @@ is_thread (struct thread *t)
 static void
 init_thread (struct thread *t, const char *name, int priority)
 {
-  int i;
   ASSERT (t != NULL);
   ASSERT (PRI_MIN <= priority && priority <= PRI_MAX);
   ASSERT (name != NULL);
@@ -491,6 +498,7 @@ init_thread (struct thread *t, const char *name, int priority)
   list_push_back (&all_list, &t->allelem);
 
 #ifdef USERPROG
+  int i;
   t->on_wait = t->load_success = false;
   t->exit_status = -2;
   t->parent = running_thread();
@@ -637,5 +645,27 @@ struct thread *thread_child (tid_t child_tid) {
         if(list_entry(thread_elem, struct thread, child_elem)->tid == child_tid)
             return list_entry(thread_elem, struct thread, child_elem);
     return NULL;
+}
+#endif
+
+#ifndef USERPROG
+/* Returns the conversion from integer to corresponding fixed-point format. */
+static int int_to_fxP(int i) {
+    return i * FX_PNT_SHIFT;
+}
+
+/* Returns the conversion from fixed-point format to corresponding integer. */
+static int fxP_to_int(int f) {
+    return f / FX_PNT_SHIFT;
+}
+
+/* Returns the multiplication of two fixed-point numbers. */
+static int mult_fxP(int fx, int fy) {
+    return ((int64_t) fx) * fy / FX_PNT_SHIFT;
+}
+
+/* Returns the division of two fixed-point numbers. */
+static int div_fxP(int fx, int fy) {
+    return ((int64_t) fx) * FX_PNT_SHIFT / fy;
 }
 #endif

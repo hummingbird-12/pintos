@@ -9,6 +9,7 @@
 /* Project3 - Pintos Thread */
 #ifndef USERPROG
 extern bool thread_prior_aging;
+extern int load_avg;                       /* load_avg value */
 #endif
 
 /* States in a thread's life cycle. */
@@ -94,6 +95,8 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
+    int nice;                           /* nice value for priority change */
+    int rec_cpu;                        /* amount of recent CPU time a thread received */
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
