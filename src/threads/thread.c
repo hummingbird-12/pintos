@@ -88,7 +88,7 @@ int add_float(int x, int y, int fx_flag, int fy_flag){
 }
 int sub_float(int x, int y, int fx_flag, int fy_flag){
   
-  if(fa_flag != fb_flag){
+  if(fx_flag != fy_flag){
     x = fx_flag ? x : x*F;
     y = fy_flag ? y : y*F;
   }
@@ -143,7 +143,7 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
-  initial_thread->tid = recent_cpu = 0;
+  initial_thread->recent_cpu = 0;
   initial_thread->nice = 0;
 }
 
@@ -461,19 +461,31 @@ void calc_recent_cpu(){
   calc_load_avg();
 
   for (e = list_begin (&all_list); e != list_end (&all_list);e = list_next (e)){
-    thd = list_entry(e, struct thread, elem);
+    thd = list_entry(e, struct thread, allelem);
     if(thd == idle_thread) continue;
-    thd->recent_cpu = add_float( mult_float( div_float(mult_float( load_avg,2, 1,0), add_float(mult_float(load_avg,2),1,1,0), 1,1),thd->recent_cpu ,1,1),thd->nice,1,0);
+    thd->recent_cpu = add_float( mult_float( div_float(mult_float( load_avg,2, 1,0), add_float(mult_float(load_avg,2,1,0),1,1,0), 1,1),thd->recent_cpu ,1,1),thd->nice,1,0);
   }
 }
 
 void calc_load_avg(){
   int ready_threads = (thread_current() == idle_thread) ? list_size(&ready_list) : list_size(&ready_list)+1;
 
-  load_avg =  add_flaot(  div_float(mult_float(load_avg,59, 1,0),60,1,0 )  ,  div_float(ready_threads, 60,1,0)  , 1, 1);
+  load_avg =  add_float(  div_float(mult_float(load_avg,59, 1,0),60,1,0 )  ,  div_float(ready_threads, 60,1,0)  , 1, 1);
 }
 
+void calc_priority(){
+  struct list_elem *e;
+  struct thread* thd;
+  int priority;
 
+  for (e = list_begin (&all_list); e != list_end (&all_list);e = list_next (e)){
+    thd = list_entry(e, struct thread, allelem);
+    priority = sub_float( sub_float(PRI_MAX, div_float(thd->recent_cpu,4,1,0),0,1) , mult_float( 2, thd->nice,0,1 ) , 1,1 ) ;
+    thd->priority  = priority > PRI_MAX ? PRI_MAX : priority;
+    thd->priority = priority < PRI_MIN ? PRI_MIN : priority;
+  } 
+
+}
 
 /* Idle thread.  Executes when no other thread is ready to run.
 
@@ -562,8 +574,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
-  t->nice = runnig_thread()->nice;
-  t->recent_cpu = runnig_thread()->recent_cpu;
+  t->nice = running_thread() -> nice;
+  t->recent_cpu = running_thread()->recent_cpu;
  
 #ifdef USERPROG
   t->on_wait = t->load_success = false;

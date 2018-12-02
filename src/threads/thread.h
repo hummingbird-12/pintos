@@ -174,10 +174,14 @@ int thread_get_load_avg (void);
 bool prio_less_func(const struct list_elem *prev, const struct list_elem *post, void *aux);
 
 /* calcuating load_avg and cpu for priority aging  */
-void calc_recent_cpu();
-void calc_load_avg();
+void calc_recent_cpu(void);
+void calc_load_avg(void);
+void calc_priority(void);
 /* Fixed-point real arithmetic */
 int add_float(int x, int y, int fx_flag, int fy_falg);
+int sub_float(int x, int y, int fx_flag, int fy_falg);
+int div_float(int x, int y, int fx_flag, int fy_falg);
+int mult_float(int x, int y, int fx_flag, int fy_falg);
 
 
 #ifdef USERPROG
