@@ -173,6 +173,13 @@ int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 bool prio_less_func(const struct list_elem *prev, const struct list_elem *post, void *aux);
 
+/* calcuating load_avg and cpu for priority aging  */
+void calc_recent_cpu();
+void calc_load_avg();
+/* Fixed-point real arithmetic */
+int add_float(int x, int y, int fx_flag, int fy_falg);
+
+
 #ifdef USERPROG
 /* Owned by userprog/process.c. */
 struct thread *thread_child (tid_t child_tid);

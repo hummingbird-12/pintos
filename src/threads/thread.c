@@ -79,35 +79,35 @@ static int load_avg;
 #define F 1<<14
 
 /* float */
-int add_float(int a, int b, int fa_flag, int fb_flag){
-  if(fa_flag != fb_flag){
-    a = fa_flag ? a:a*F;
-    b = fb_flag ? b:b*F;
+int add_float(int x, int y, int fx_flag, int fy_flag){
+  if(fx_flag != fy_flag){
+    x = fx_flag ? x:x*F;
+    y = fy_flag ? y:y*F;
   }
-  return a+b;
+  return x+y;
 }
-int sub_float(int a, int b, int fa_flag, int fb_flag){
+int sub_float(int x, int y, int fx_flag, int fy_flag){
   
   if(fa_flag != fb_flag){
-    a = fa_flag ? a : a*F;
-    b = fb_flag ? b : b*F;
+    x = fx_flag ? x : x*F;
+    y = fy_flag ? y : y*F;
   }
-  return a-b;
+  return x-y;
 }
 
-int multi_float(int a, int b, int fa_flag, int fb_flag){
-  if(fb_flag == fa_flag && fa_flag){
-    return (int)( (int64_t)a * b / F);
+int mult_float(int x, int y, int fx_flag, int fy_flag){
+  if(fx_flag == fy_flag && fx_flag){
+    return (int)( ((int64_t)x) * y / F);
   }
-  return a*b;
+  return x*y;
 
 }
-int div_float(int a, int b, int a_flag, int b_flag){
+int div_float(int x, int y, int fx_flag, int fy_flag){
   
-  if(fb_flag == fa_flag && fa_flag){
-    return (int)(  ((int64_t)a * F)/b);
+  if(fx_flag == fy_flag && fx_flag){
+    return (int)( (((int64_t)x) * F)/y);
   }
-  return a/b;
+  return x/y;
 }
 
 
@@ -443,17 +443,38 @@ int
 thread_get_load_avg (void) 
 {
   /* Not yet implemented. */
-  return multi_float(100, load_avg, 0,1)/F;
+  return mult_float(load_avg, 100, 1,0)/F;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
+  return mult_float( thread_current()->recent_cpu, 100,1,0)/F;
   /* Not yet implemented. */
-  return 0;
 }
-
+
+
+void calc_recent_cpu(){
+  struct list_elem *e;
+  struct thread* thd;
+  calc_load_avg();
+
+  for (e = list_begin (&all_list); e != list_end (&all_list);e = list_next (e)){
+    thd = list_entry(e, struct thread, elem);
+    if(thd == idle_thread) continue;
+    thd->recent_cpu = add_float( mult_float( div_float(mult_float( load_avg,2, 1,0), add_float(mult_float(load_avg,2),1,1,0), 1,1),thd->recent_cpu ,1,1),thd->nice,1,0);
+  }
+}
+
+void calc_load_avg(){
+  int ready_threads = (thread_current() == idle_thread) ? list_size(&ready_list) : list_size(&ready_list)+1;
+
+  load_avg =  add_flaot(  div_float(mult_float(load_avg,59, 1,0),60,1,0 )  ,  div_float(ready_threads, 60,1,0)  , 1, 1);
+}
+
+
+
 /* Idle thread.  Executes when no other thread is ready to run.
 
    The idle thread is initially put on the ready list by
