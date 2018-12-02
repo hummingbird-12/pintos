@@ -481,9 +481,17 @@ void calc_priority(){
   for (e = list_begin (&all_list); e != list_end (&all_list);e = list_next (e)){
     thd = list_entry(e, struct thread, allelem);
     priority = sub_float( sub_float(PRI_MAX, div_float(thd->recent_cpu,4,1,0),0,1) , mult_float( 2, thd->nice,0,1 ) , 1,1 ) ;
-    thd->priority  = priority > PRI_MAX ? PRI_MAX : priority;
-    thd->priority = priority < PRI_MIN ? PRI_MIN : priority;
-  } 
+    priority  = priority > PRI_MAX ? PRI_MAX : priority;
+    priority = priority < PRI_MIN ? PRI_MIN : priority;
+    thd->priority = priority;
+  }
+
+  if(list_empty(&ready_list)) intr_yield_on_return();
+  else{
+    if(thread_current()->priority < (list_entry(list_front(&ready_list), struct thread, elem)->priority))
+      intr_yield_on_return();
+  }
+
 
 }
 
