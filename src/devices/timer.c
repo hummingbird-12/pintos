@@ -182,6 +182,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   struct list_elem *elem = list_begin(&sleep_list);
   struct thread *it;
+  struct thread *cur = thread_current();
 
   ticks++;
 
@@ -194,6 +195,16 @@ timer_interrupt (struct intr_frame *args UNUSED)
       }
       else
           elem = list_next(elem);
+  }
+
+  if(thread_prior_aging) {
+      cur->rec_cpu = cur->rec_cpu + int_to_fxP(1);
+      if(!(timer_ticks() % TIMER_FREQ)) {
+          refresh_load_avg();
+          refresh_recent_cpu();
+      }
+      if(!(timer_ticks() % 4))
+          refresh_priority();
   }
 
   thread_tick ();

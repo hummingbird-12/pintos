@@ -14,6 +14,7 @@ extern int load_avg;                       /* load_avg value */
 /* for priority aging */
 void refresh_load_avg();
 void refresh_recent_cpu();
+void refresh_priority();
 #endif
 
 /* States in a thread's life cycle. */

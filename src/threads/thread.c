@@ -390,11 +390,6 @@ thread_set_nice (int new_nice)
 {
   struct thread *cur = thread_current();
   cur->nice = new_nice;
-  cur->priority = PRI_MAX - fxP_to_int(div_fxP(cur->rec_cpu, int_to_fxP(4)), false) - (cur->nice * 2);
-
-  /* yield CPU if new priority is lower than the highest in ready queue */
-  if(!list_empty(&ready_list) && list_front(&ready_list)->priority > cur->priority)
-      thread_yield();
 }
 
 /* Returns the current thread's nice value. */
@@ -687,7 +682,7 @@ static int div_fxP(int fx, int fy) {
     return ((int64_t) fx) * FX_PNT_SHIFT / fy;
 }
 
-/* update load_avg value */
+/* update load_avg value. */
 void refresh_load_avg() {
     /* ready_thread: number of threads READY to run or RUNNING. */
     int ready_threads = list_size(&ready_list) + (running_thread() == idle_thread ? 1 : 0);
@@ -696,7 +691,7 @@ void refresh_load_avg() {
     load_avg = div_fxP(mult_fxP(int_to_fxP(59), load_avg) + int_to_fxP(ready_threads), int_to_fxP(60));
 }
 
-/* update all thread's recent_cpu value */
+/* update all thread's recent_cpu value. */
 void refresh_recent_cpu() {
     struct list_elem *e;
     struct thread *t;
@@ -714,5 +709,21 @@ void refresh_recent_cpu() {
                 + int_to_fxP(t->nice)
         };
     }
+}
+
+/* update all thread's priority value. */
+void refresh_priority() {
+  struct list_elem *e;
+  struct thread *t;
+
+  for(e = list_begin(&all_list); e != list_end(&all_list);
+          e = list_next(e)) {
+      t = list_entry(e, struct thread, allelem);
+      t->priority = PRI_MAX - fxP_to_int(div_fxP(cur->rec_cpu, int_to_fxP(4)), false) - (cur->nice * 2);
+  }
+
+  /* yield CPU if new priority is lower than the highest in ready queue */
+  if(!list_empty(&ready_list) && list_front(&ready_list)->priority > thread_current()->priority)
+      thread_yield();
 }
 #endif
