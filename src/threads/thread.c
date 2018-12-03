@@ -687,9 +687,16 @@ static int div_fxP(int fx, int fy) {
     return ((int64_t) fx) * FX_PNT_SHIFT / fy;
 }
 
+/* update load_avg value */
 void refresh_load_avg() {
+    /* ready_thread: number of threads READY to run or RUNNING. */
+    int ready_threads = list_size(&ready_list) + (running_thread() == idle_thread ? 1 : 0);
+
+    /* reduce error by reducing division */
+    load_avg = div_fxP(mult_fxP(int_to_fxP(59), load_avg) + int_to_fxP(ready_threads), int_to_fxP(60));
 }
 
+/* update current thread's recent_cpu value */
 void refresh_recent_cpu() {
 }
 #endif
