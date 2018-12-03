@@ -1,5 +1,3 @@
-#include "threads/thread.h"
-#include <debug.h>
 #include <stddef.h>
 #include <random.h>
 #include <stdio.h>
@@ -11,9 +9,12 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "threads/thread.h"
+#include "devices/timer.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
+
 
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
@@ -187,13 +188,21 @@ thread_tick (void)
 
   /* project #3 */
 #ifndef USERPROG
- // thread_wake_up();
+   //thread_wake_up();
 
-  //if(thread_prior_aging == true)
-    //thread_aging();
+  if(thread_prior_aging == true)
+    thread_aging();
 
 #endif
 }
+
+
+void thread_aging(void){
+  thread_current()->recent_cpu = add_float(thread_current()->recent_cpu, 1, 1, 0);
+  if(timer_ticks() % TIMER_FREQ == 0) calc_recent_cpu();
+  if(timer_ticks() % 4 == 0 ) calc_priority();
+}
+
 
 /* Prints thread statistics. */
 void
@@ -425,16 +434,15 @@ thread_get_priority (void)
 
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice UNUSED) 
+thread_set_nice (int nice) 
 {
-  /* Not yet implemented. */
+  thread_current()->nice = nice;
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
   return thread_current()->nice;
 }
 
@@ -442,7 +450,6 @@ thread_get_nice (void)
 int
 thread_get_load_avg (void) 
 {
-  /* Not yet implemented. */
   return mult_float(load_avg, 100, 1,0)/F;
 }
 
@@ -451,7 +458,6 @@ int
 thread_get_recent_cpu (void) 
 {
   return mult_float( thread_current()->recent_cpu, 100,1,0)/F;
-  /* Not yet implemented. */
 }
 
 

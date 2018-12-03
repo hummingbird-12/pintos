@@ -139,7 +139,7 @@ struct thread
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 extern bool thread_mlfqs;
-extern bool thread_aging;
+extern bool thread_prior_aging;
 
 void thread_init (void);
 void thread_start (void);
@@ -177,6 +177,8 @@ bool prio_less_func(const struct list_elem *prev, const struct list_elem *post, 
 void calc_recent_cpu(void);
 void calc_load_avg(void);
 void calc_priority(void);
+
+void thread_aging(void);
 /* Fixed-point real arithmetic */
 int add_float(int x, int y, int fx_flag, int fy_falg);
 int sub_float(int x, int y, int fx_flag, int fy_falg);
