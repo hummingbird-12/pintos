@@ -696,7 +696,23 @@ void refresh_load_avg() {
     load_avg = div_fxP(mult_fxP(int_to_fxP(59), load_avg) + int_to_fxP(ready_threads), int_to_fxP(60));
 }
 
-/* update current thread's recent_cpu value */
+/* update all thread's recent_cpu value */
 void refresh_recent_cpu() {
+    struct list_elem *e;
+    struct thread *t;
+
+    for(e = list_begin(&all_list); e != list_end(&all_list);
+            e = list_next(e)) {
+        t = list_entry(e, struct thread, allelem);
+        if(t != idle_thread) {
+            t->rec_cpu =
+                mult_fxP(
+                        div_fxP(
+                            mult_fxP(int_to_fxP(2), load_avg),
+                            mult_fxP(int_to_fxP(2), load_avg) + int_to_fxP(1)),
+                        t->rec_cpu)
+                + int_to_fxP(t->nice)
+        };
+    }
 }
 #endif
