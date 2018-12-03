@@ -11,6 +11,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "devices/timer.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -58,14 +59,6 @@ static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 #ifndef USERPROG
 bool thread_prior_aging;
 int load_avg;
-
-/* For Fixed-Point Real Arithmetic */
-#define FRAC_BITS 14
-#define FX_PNT_SHIFT (1<<FRAC_BITS)
-static int int_to_fxP(int i);
-static int fxP_to_int(int f, bool round);
-static int mult_fxP(int fx, int fy);
-static int div_fxP(int fx, int fy);
 #endif
 
 /* If false (default), use round-robin scheduler.
@@ -158,10 +151,8 @@ thread_tick (void)
 
   /* Project 3 - Pintos Thread */
 #ifndef USERPROG
-  // thread_wake_up();
-
-  // if(thread_prior_aging == true)
-      // thread_aging();
+  if(thread_mlfqs || thread_prior_aging == true)
+      thread_aging();
 #endif
 }
 
@@ -389,7 +380,14 @@ void
 thread_set_nice (int new_nice) 
 {
   struct thread *cur = thread_current();
+
   cur->nice = new_nice;
+  cur->priority = PRI_MAX - fxP_to_int(div_fxP(cur->rec_cpu, int_to_fxP(4)), false) - (cur->nice * 2);
+
+  /* yield CPU if new priority is lower than the highest in ready queue */
+  if(!list_empty(&ready_list) &&
+          list_entry(list_front(&ready_list), struct thread, elem)->priority > cur->priority)
+    thread_yield();
 }
 
 /* Returns the current thread's nice value. */
@@ -657,14 +655,14 @@ struct thread *thread_child (tid_t child_tid) {
 
 #ifndef USERPROG
 /* Returns the conversion from integer to corresponding fixed-point format. */
-static int int_to_fxP(int i) {
+int int_to_fxP(int i) {
     return i * FX_PNT_SHIFT;
 }
 
 /* Returns the conversion from fixed-point format to corresponding integer. */
-static int fxP_to_int(int f, bool round) {
+int fxP_to_int(int f, bool round) {
     if(round) {
-        if(f > 0)
+        if(f >= 0)
             f += FX_PNT_SHIFT / 2;
         else if(f < 0)
             f -= FX_PNT_SHIFT / 2;
@@ -673,26 +671,26 @@ static int fxP_to_int(int f, bool round) {
 }
 
 /* Returns the multiplication of two fixed-point numbers. */
-static int mult_fxP(int fx, int fy) {
+int mult_fxP(int fx, int fy) {
     return ((int64_t) fx) * fy / FX_PNT_SHIFT;
 }
 
 /* Returns the division of two fixed-point numbers. */
-static int div_fxP(int fx, int fy) {
+int div_fxP(int fx, int fy) {
     return ((int64_t) fx) * FX_PNT_SHIFT / fy;
 }
 
 /* update load_avg value. */
-void refresh_load_avg() {
+void refresh_load_avg(void) {
     /* ready_thread: number of threads READY to run or RUNNING. */
-    int ready_threads = list_size(&ready_list) + (running_thread() == idle_thread ? 1 : 0);
+    int ready_threads = list_size(&ready_list) + (running_thread() == idle_thread ? 0 : 1);
 
     /* reduce error by reducing division */
     load_avg = div_fxP(mult_fxP(int_to_fxP(59), load_avg) + int_to_fxP(ready_threads), int_to_fxP(60));
 }
 
 /* update all thread's recent_cpu value. */
-void refresh_recent_cpu() {
+void refresh_recent_cpu(void) {
     struct list_elem *e;
     struct thread *t;
 
@@ -706,24 +704,37 @@ void refresh_recent_cpu() {
                             mult_fxP(int_to_fxP(2), load_avg),
                             mult_fxP(int_to_fxP(2), load_avg) + int_to_fxP(1)),
                         t->rec_cpu)
-                + int_to_fxP(t->nice)
-        };
+                + int_to_fxP(t->nice);
+        }
     }
 }
 
 /* update all thread's priority value. */
-void refresh_priority() {
+void refresh_priority(void) {
   struct list_elem *e;
   struct thread *t;
 
   for(e = list_begin(&all_list); e != list_end(&all_list);
           e = list_next(e)) {
       t = list_entry(e, struct thread, allelem);
-      t->priority = PRI_MAX - fxP_to_int(div_fxP(cur->rec_cpu, int_to_fxP(4)), false) - (cur->nice * 2);
+      t->priority = PRI_MAX - fxP_to_int(div_fxP(t->rec_cpu, int_to_fxP(4)), false) - (t->nice * 2);
   }
 
   /* yield CPU if new priority is lower than the highest in ready queue */
-  if(!list_empty(&ready_list) && list_front(&ready_list)->priority > thread_current()->priority)
-      thread_yield();
+  if(!list_empty(&ready_list) && list_entry(list_front(&ready_list), struct thread, elem)->priority > thread_current()->priority)
+      intr_yield_on_return ();
+}
+
+/* apply priority aging */
+void thread_aging(void) {
+    struct thread *cur = thread_current();
+
+    cur->rec_cpu = cur->rec_cpu + int_to_fxP(1);
+    if(!(timer_ticks() % TIMER_FREQ)) {
+        refresh_load_avg();
+        refresh_recent_cpu();
+    }
+    if(!(timer_ticks() % 4))
+        refresh_priority();
 }
 #endif

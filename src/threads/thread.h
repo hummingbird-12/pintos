@@ -12,9 +12,18 @@ extern bool thread_prior_aging;
 extern int load_avg;                       /* load_avg value */
 
 /* for priority aging */
-void refresh_load_avg();
-void refresh_recent_cpu();
-void refresh_priority();
+void thread_aging(void);
+void refresh_load_avg(void);
+void refresh_recent_cpu(void);
+void refresh_priority(void);
+
+/* for Fixed-Point Real Arithmetic */
+#define FRAC_BITS 14
+#define FX_PNT_SHIFT (1<<FRAC_BITS)
+int int_to_fxP(int i);
+int fxP_to_int(int f, bool round);
+int mult_fxP(int fx, int fy);
+int div_fxP(int fx, int fy);
 #endif
 
 /* States in a thread's life cycle. */
