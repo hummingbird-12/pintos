@@ -14,7 +14,7 @@
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
-
+#define F (1<<14)
 
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
@@ -58,6 +58,7 @@ static long long user_ticks;    /* # of timer ticks in user programs. */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 #ifndef USERPROG
 bool thread_prior_aging;
+int load_avg;
 #endif
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
@@ -75,9 +76,7 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
-static int load_avg;
 
-#define F 1<<14
 
 
 
@@ -157,7 +156,7 @@ thread_tick (void)
 #ifndef USERPROG
    //thread_wake_up();
 
-  if(thread_prior_aging == true)
+  if(thread_prior_aging == true || thread_mlfqs )
     thread_aging();
 
 #endif
@@ -404,9 +403,15 @@ thread_get_priority (void)
 
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice) 
+thread_set_nice (int new_nice) 
 {
-  thread_current()->nice = nice;
+  struct thread *cur = thread_current();
+
+  cur->nice = new_nice;
+  cur->priority = PRI_MAX - fxP_to_int(div_fxP(cur->recent_cpu, int_to_fxP(4)),false) - (cur->nice * 2);
+  if(!list_empty(&ready_list) && 
+      list_entry(list_front(&ready_list), struct thread, elem)->priority > cur->priority)
+    thread_yield();
 }
 
 /* Returns the current thread's nice value. */
@@ -420,6 +425,7 @@ thread_get_nice (void)
 int
 thread_get_load_avg (void) 
 {
+
   return fxP_to_int(mult_fxP(int_to_fxP(100), load_avg), true);
 }
 
@@ -475,7 +481,9 @@ void calc_recent_cpu(){
 }
 
 void calc_load_avg(){
-  int ready_threads = (running_thread() == idle_thread) ? list_size(&ready_list) : list_size(&ready_list)+1;
+  int ready_threads = (running_thread() == idle_thread) ? ( list_size(&ready_list)) : (list_size(&ready_list) + 1);
+
+  
   load_avg = div_fxP(mult_fxP(int_to_fxP(59), load_avg) + int_to_fxP(ready_threads), int_to_fxP(60));
 }
 

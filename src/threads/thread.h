@@ -8,6 +8,7 @@
 
 #ifndef USERPROG
 extern bool thread_prior_aging;
+//extern int load_avg;
 #endif
 
 
