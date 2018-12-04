@@ -79,39 +79,6 @@ static int load_avg;
 
 #define F 1<<14
 
-/* float */
-int add_float(int x, int y, int fx_flag, int fy_flag){
-  if(fx_flag != fy_flag){
-    x = fx_flag ? x:x*F;
-    y = fy_flag ? y:y*F;
-  }
-  return x+y;
-}
-int sub_float(int x, int y, int fx_flag, int fy_flag){
-  
-  if(fx_flag != fy_flag){
-    x = fx_flag ? x : x*F;
-    y = fy_flag ? y : y*F;
-  }
-  return x-y;
-}
-
-int mult_float(int x, int y, int fx_flag, int fy_flag){
-  if(fx_flag == fy_flag && fx_flag){
-    return (int)( ((int64_t)x) * y / F);
-  }
-  return x*y;
-
-}
-int div_float(int x, int y, int fx_flag, int fy_flag){
-  
-  if(fx_flag == fy_flag && fx_flag){
-    return (int)( (((int64_t)x) * F)/y);
-  }
-  return x/y;
-}
-
-
 
 
 /* Initializes the threading system by transforming the code
@@ -198,8 +165,11 @@ thread_tick (void)
 
 
 void thread_aging(void){
-  thread_current()->recent_cpu = add_float(thread_current()->recent_cpu, 1, 1, 0);
-  if(timer_ticks() % TIMER_FREQ == 0) calc_recent_cpu();
+  thread_current()->recent_cpu = thread_current()->recent_cpu + int_to_fxP(1);
+  if(timer_ticks() % TIMER_FREQ == 0){
+    calc_load_avg(); 
+    calc_recent_cpu();
+  }
   if(timer_ticks() % 4 == 0 ) calc_priority();
 }
 
@@ -450,46 +420,73 @@ thread_get_nice (void)
 int
 thread_get_load_avg (void) 
 {
-  return mult_float(load_avg, 100, 1,0)/F;
+  return fxP_to_int(mult_fxP(int_to_fxP(100), load_avg), true);
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
-  return mult_float( thread_current()->recent_cpu, 100,1,0)/F;
+  return fxP_to_int(mult_fxP(int_to_fxP(100),thread_current()->recent_cpu), true);
 }
+
+int int_to_fxP(int i){
+  return i * F;
+}
+
+int fxP_to_int(int f, bool round){
+  if(round){
+    if(f >= 0)
+      f+= F/2;
+    else if(f<0)
+      f -= F/2;
+  }
+  return f/F;
+}
+
+int mult_fxP(int fx, int fy){
+  return ((int64_t)fx) * fy / F;
+}
+
+int div_fxP(int fx, int fy){
+  return ((int64_t) fx)*F / fy;
+}
+
+
+
 
 
 void calc_recent_cpu(){
   struct list_elem *e;
   struct thread* thd;
-  calc_load_avg();
 
   for (e = list_begin (&all_list); e != list_end (&all_list);e = list_next (e)){
     thd = list_entry(e, struct thread, allelem);
     if(thd == idle_thread) continue;
-    thd->recent_cpu = add_float( mult_float( div_float(mult_float( load_avg,2, 1,0), add_float(mult_float(load_avg,2,1,0),1,1,0), 1,1),thd->recent_cpu ,1,1),thd->nice,1,0);
+    thd->recent_cpu = 
+      mult_fxP(
+          div_fxP(
+            mult_fxP(int_to_fxP(2), load_avg),
+            mult_fxP(int_to_fxP(2), load_avg) + int_to_fxP(1)),
+          thd->recent_cpu)
+      + int_to_fxP(thd->nice);
+          
   }
 }
 
 void calc_load_avg(){
-  int ready_threads = (thread_current() == idle_thread) ? list_size(&ready_list) : list_size(&ready_list)+1;
-
-  load_avg =  add_float(  div_float(mult_float(load_avg,59, 1,0),60,1,0 )  ,  div_float(ready_threads, 60,1,0)  , 1, 1);
+  int ready_threads = (running_thread() == idle_thread) ? list_size(&ready_list) : list_size(&ready_list)+1;
+  load_avg = div_fxP(mult_fxP(int_to_fxP(59), load_avg) + int_to_fxP(ready_threads), int_to_fxP(60));
 }
 
 void calc_priority(){
   struct list_elem *e;
   struct thread* thd;
-  int priority;
 
   for (e = list_begin (&all_list); e != list_end (&all_list);e = list_next (e)){
     thd = list_entry(e, struct thread, allelem);
-    priority = sub_float( sub_float(PRI_MAX, div_float(thd->recent_cpu,4,1,0),0,1) , mult_float( 2, thd->nice,0,1 ) , 1,1 ) ;
-    priority  = priority > PRI_MAX ? PRI_MAX : priority;
-    priority = priority < PRI_MIN ? PRI_MIN : priority;
-    thd->priority = priority;
+    thd->priority = PRI_MAX - fxP_to_int(div_fxP(thd->recent_cpu, int_to_fxP(4)),false) - (thd->nice * 2);
+   
   }
 
   if(list_empty(&ready_list)) intr_yield_on_return();

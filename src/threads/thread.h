@@ -180,10 +180,14 @@ void calc_priority(void);
 
 void thread_aging(void);
 /* Fixed-point real arithmetic */
-int add_float(int x, int y, int fx_flag, int fy_falg);
-int sub_float(int x, int y, int fx_flag, int fy_falg);
-int div_float(int x, int y, int fx_flag, int fy_falg);
-int mult_float(int x, int y, int fx_flag, int fy_falg);
+
+int int_to_fxP(int i);
+int fxP_to_int(int f, bool round);
+int mult_fxP(int fx, int fy);
+int div_fxP(int fx, int fy);
+
+
+
 
 
 #ifdef USERPROG
