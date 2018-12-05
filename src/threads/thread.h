@@ -8,7 +8,7 @@
 
 #ifndef USERPROG
 extern bool thread_prior_aging;
-//extern int load_avg;
+extern int load_avg;
 #endif
 
 
@@ -100,11 +100,11 @@ struct thread
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
-    
+#ifndef USERPROG 
     /* priority aging */
     int recent_cpu;
     int nice;
-
+#endif
 
 #ifdef USERPROG
 #define FD_MAX 131                      /* 128 + STDIN + STOUT + CURFILE */
@@ -131,16 +131,20 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
 
+#ifndef USERPROG
     /* Owned by timer.c */
     int64_t wakeup_tick;                /* Tick count when thread will be woken up*/
     struct list_elem sleep_elem;        /* element of sleep_list*/ 
+#endif
 };
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 extern bool thread_mlfqs;
+#ifndef USERPROG
 extern bool thread_prior_aging;
+#endif
 
 void thread_init (void);
 void thread_start (void);
@@ -172,6 +176,8 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+
+#ifndef USERPROG
 bool prio_less_func(const struct list_elem *prev, const struct list_elem *post, void *aux);
 
 /* calcuating load_avg and cpu for priority aging  */
@@ -186,10 +192,7 @@ int int_to_fxP(int i);
 int fxP_to_int(int f, bool round);
 int mult_fxP(int fx, int fy);
 int div_fxP(int fx, int fy);
-
-
-
-
+#endif
 
 #ifdef USERPROG
 /* Owned by userprog/process.c. */

@@ -29,10 +29,10 @@ static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
 
-
+#ifndef USERPROG
 /* List of sleeping processes by timer_sleep() */
 static struct list sleep_list;
-
+#endif
 
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
    and registers the corresponding interrupt. */
@@ -41,7 +41,9 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
+#ifndef USERPROG
   list_init(&sleep_list);
+#endif
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -95,6 +97,13 @@ void
 timer_sleep (int64_t ticks) 
 {
   int64_t start = timer_ticks ();       //get current time
+
+#ifdef USERPROG
+  ASSERT (intr_get_level () == INTR_ON);
+  while (timer_elapsed (start) < ticks) 
+    thread_yield ();
+#endif
+#ifndef USERPROG
   enum intr_level old_level;
   struct thread *cur = thread_current();
 
@@ -109,6 +118,7 @@ timer_sleep (int64_t ticks)
   thread_block(); 
   
   intr_set_level(old_level);
+#endif
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -185,11 +195,14 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
+#ifndef USERPROG
   struct list_elem *e = list_begin(&sleep_list);
   struct thread* cur;
+#endif
 
   ticks++;
 
+#ifndef USERPROG
   while( e != list_end(&sleep_list) ){
     
     cur = list_entry(e, struct thread, sleep_elem);
@@ -201,6 +214,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
     e = list_remove(e);
     thread_unblock(cur);
   }
+#endif
 
   thread_tick ();
 }

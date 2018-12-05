@@ -10,11 +10,16 @@
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 #include "threads/thread.h"
+#ifndef USERPROG
 #include "devices/timer.h"
+#endif
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
+
+#ifndef USERPROG
 #define F (1<<14)
+#endif
 
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
@@ -38,7 +43,6 @@ static struct thread *initial_thread;
 /* Lock used by allocate_tid(). */
 static struct lock tid_lock;
 
-
 /* Stack frame for kernel_thread(). */
 struct kernel_thread_frame 
   {
@@ -51,7 +55,6 @@ struct kernel_thread_frame
 static long long idle_ticks;    /* # of timer ticks spent idle. */
 static long long kernel_ticks;  /* # of timer ticks in kernel threads. */
 static long long user_ticks;    /* # of timer ticks in user programs. */
-
 
 /* Scheduling. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
@@ -78,8 +81,6 @@ void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
 
-
-
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -93,8 +94,6 @@ static tid_t allocate_tid (void);
 
    It is not safe to call thread_current() until this function
    finishes. */
-
-
 
 void
 thread_init (void) 
@@ -110,8 +109,10 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+#ifndef USERPROG
   initial_thread->recent_cpu = 0;
   initial_thread->nice = 0;
+#endif
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -162,7 +163,7 @@ thread_tick (void)
 #endif
 }
 
-
+#ifndef USERPROG
 void thread_aging(void){
   thread_current()->recent_cpu = thread_current()->recent_cpu + int_to_fxP(1);
   if(timer_ticks() % TIMER_FREQ == 0){
@@ -171,7 +172,7 @@ void thread_aging(void){
   }
   if(timer_ticks() % 4 == 0 ) calc_priority();
 }
-
+#endif
 
 /* Prints thread statistics. */
 void
@@ -243,9 +244,10 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+#ifndef USERPROG
   /* Preempt if priority of current  thread < new thread */
   if(priority > thread_get_priority())  thread_yield();
-  
+#endif  
 
   return tid;
 }
@@ -283,7 +285,12 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
+#ifdef USERPROG
+  list_push_back (&ready_list, &t->elem);
+#endif
+#ifndef USERPROG
   list_insert_ordered (&ready_list, &t->elem, prio_less_func, NULL);
+#endif
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -353,19 +360,25 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
+#ifdef USERPROG
   if (cur != idle_thread) 
-    //list_insert_ordered();
+    list_push_back (&ready_list, &cur->elem);
+#endif
+#ifndef USERPROG
+  if (cur != idle_thread) 
     list_insert_ordered(&ready_list, &cur->elem, prio_less_func, NULL);
+#endif
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
 }
 
+#ifndef USERPROG
 /* compare function for priority */
-bool prio_less_func(const struct list_elem *prev, const struct list_elem *post, void *aux){
+bool prio_less_func(const struct list_elem *prev, const struct list_elem *post, void *aux UNUSED){
   return list_entry(prev, struct thread, elem)->priority > list_entry(post,struct thread, elem)->priority;
 }
-
+#endif
 
 /* Invoke function 'func' on all threads, passing along 'aux'.
    This function must be called with interrupts off. */
@@ -388,10 +401,15 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
+#ifdef USERPROG
+  thread_current ()->priority = new_priority;
+#endif
+#ifndef USERPROG
   int cur_prio = thread_current()->priority;
   thread_current()->priority = new_priority;
 
   if(cur_prio > new_priority) thread_yield();
+#endif
 }
 
 /* Returns the current thread's priority. */
@@ -402,6 +420,14 @@ thread_get_priority (void)
 }
 
 /* Sets the current thread's nice value to NICE. */
+#ifdef USERPROG
+void
+thread_set_nice (int nice UNUSED)
+{
+  /* Not yet implemented. */
+}
+#endif
+#ifndef USERPROG
 void
 thread_set_nice (int new_nice) 
 {
@@ -413,29 +439,48 @@ thread_set_nice (int new_nice)
       list_entry(list_front(&ready_list), struct thread, elem)->priority > cur->priority)
     thread_yield();
 }
+#endif
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
+#ifdef USERPROG
+  /* Not yet implemented. */
+  return 0;
+#endif
+#ifndef USERPROG
   return thread_current()->nice;
+#endif
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) 
 {
-
+#ifdef USERPROG
+  /* Not yet implemented. */
+  return 0;
+#endif
+#ifndef USERPROG
   return fxP_to_int(mult_fxP(int_to_fxP(100), load_avg), true);
+#endif
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
+#ifdef USERPROG
+  /* Not yet implemented. */
+  return 0;
+#endif
+#ifndef USERPROG
   return fxP_to_int(mult_fxP(int_to_fxP(100),thread_current()->recent_cpu), true);
+#endif
 }
 
+#ifndef USERPROG
 int int_to_fxP(int i){
   return i * F;
 }
@@ -457,9 +502,6 @@ int mult_fxP(int fx, int fy){
 int div_fxP(int fx, int fy){
   return ((int64_t) fx)*F / fy;
 }
-
-
-
 
 
 void calc_recent_cpu(){
@@ -502,6 +544,7 @@ void calc_priority(){
     intr_yield_on_return();
 
 }
+#endif
 
 /* Idle thread.  Executes when no other thread is ready to run.
 
@@ -578,7 +621,9 @@ is_thread (struct thread *t)
 static void
 init_thread (struct thread *t, const char *name, int priority)
 {
-  //int i;
+#ifdef USERPROG
+  int i;
+#endif
   ASSERT (t != NULL);
   ASSERT (PRI_MIN <= priority && priority <= PRI_MAX);
   ASSERT (name != NULL);
@@ -590,8 +635,10 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
+#ifndef USERPROG
   t->nice = running_thread() -> nice;
   t->recent_cpu = running_thread()->recent_cpu;
+#endif
  
 #ifdef USERPROG
   t->on_wait = t->load_success = false;
