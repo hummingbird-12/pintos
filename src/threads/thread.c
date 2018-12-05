@@ -496,13 +496,10 @@ void calc_priority(){
     thd->priority = PRI_MAX - fxP_to_int(div_fxP(thd->recent_cpu, int_to_fxP(4)),false) - (thd->nice * 2);
    
   }
-
-  if(list_empty(&ready_list)) intr_yield_on_return();
-  else{
-    if(thread_current()->priority < (list_entry(list_front(&ready_list), struct thread, elem)->priority))
-      intr_yield_on_return();
-  }
-
+  
+  if(!list_empty(&ready_list) && 
+      list_entry(list_front(&ready_list), struct thread, elem)->priority > thread_current()->priority)
+    intr_yield_on_return();
 
 }
 
