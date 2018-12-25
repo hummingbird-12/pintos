@@ -529,7 +529,11 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       /* Load this page. */
       if (file_read (file, knpage, page_read_bytes) != (int) page_read_bytes)
         {
+#ifndef VM
           palloc_free_page (knpage);
+#else
+          frame_free(knpage);
+#endif
           return false; 
         }
       memset (knpage + page_read_bytes, 0, page_zero_bytes);
@@ -537,7 +541,11 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       /* Add the page to the process's address space. */
       if (!install_page (upage, knpage, writable)) 
         {
+#ifndef VM
           palloc_free_page (knpage);
+#else
+          frame_free(knpage);
+#endif
           return false; 
         }
 
@@ -568,7 +576,11 @@ setup_stack (void **esp)
       if (success)
         *esp = PHYS_BASE;// - 12;
       else
+#ifndef VM
         palloc_free_page (kpage);
+#else
+        frame_free(kpage);
+#endif
     }
   return success;
 }

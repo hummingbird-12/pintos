@@ -19,5 +19,7 @@ typedef struct _FRAME_ENTRY {
 
 void frame_table_init(void);
 void *frame_alloc(enum palloc_flags flags, void *upage);
+void frame_free(void *page_addr);
+FRAME_ENTRY *frame_lookup(void *page_addr);
 
 #endif /* vm/frame.h */

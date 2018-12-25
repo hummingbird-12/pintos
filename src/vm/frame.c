@@ -55,3 +55,29 @@ void *frame_alloc (enum palloc_flags flags, void *upage) {
     return uframe;
 }
 
+void frame_free (void *page_addr) {
+    FRAME_ENTRY *fentry;
+    lock_acquire(&frame_table.frame_mutex);
+
+    if(!(fentry = frame_lookup(page_addr)))
+        return;
+
+    hash_delete(&frame_table.frame_hash, &fentry->f_elem);
+    palloc_free_page(fentry->uframe);
+    free(fentry);
+
+    lock_release(&frame_table.frame_mutex);
+}
+
+FRAME_ENTRY *frame_lookup(void *page_addr) {
+    struct hash_iterator frame_it;
+
+    hash_first(&frame_it, &frame_table.frame_hash);
+    while(hash_next(&frame_it)) {
+        FRAME_ENTRY *fentry = hash_entry(hash_cur(&frame_it), FRAME_ENTRY, f_elem);
+        if(page_addr == fentry->upage)
+            return fentry;
+    }
+    return NULL;
+}
+
