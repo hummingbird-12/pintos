@@ -4,7 +4,9 @@
 #include "userprog/gdt.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
-
+#include "threads/palloc.h"
+#include "userprog/pagedir.h"
+#include "threads/vaddr.h"
 #include "userprog/syscall.h"
 
 /* Number of page faults processed. */
@@ -128,7 +130,9 @@ page_fault (struct intr_frame *f)
   bool write;        /* True: access was write, false: access was read. */
   bool user;         /* True: access by user, false: access by kernel. */
   void *fault_addr;  /* Fault address. */
-
+  size_t pn;
+  void *frame;
+  void *page;
   /* Obtain faulting address, the virtual address that was
      accessed to cause the fault.  It may point to code or to
      data.  It is not necessarily the address of the instruction
@@ -154,13 +158,33 @@ page_fault (struct intr_frame *f)
   /* At page fault,
    * set EAX to 0xFFFFFFFF
    * set EIP to EAX's former value */
-  f->eip = (void*) f->eax;
-  f->eax = 0xFFFFFFFF;
+//  f->eip = (void*) f->eax;
+//  f->eax = 0xFFFFFFFF;
 
   /* if page fault caused within user process */
-  if(user)
-      fail_exit();
+//  if(user)
+//      fail_exit();
+//
+  /*yeddo pr4*/
+  if( user && not_present && write && fault_addr){
+    
+    page = PHYS_BASE - 2*PGSIZE;
 
+    if(is_user_vaddr(fault_addr) && pg_round_up(fault_addr) >= 0xBF800000){
+
+      frame = palloc_get_page(PAL_USER|PAL_ZERO);
+      pagedir_set_page(thread_current()->pagedir, page, frame,1);
+      page -= PGSIZE;
+    
+    }
+    else{
+      fail_exit();
+    }
+  }
+  else{
+    fail_exit();
+  }
+  
   /* NOT NEEDED */
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
