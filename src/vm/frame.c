@@ -32,7 +32,7 @@ void *frame_alloc (enum palloc_flags flags, void *upage) {
     lock_acquire(&frame_table.frame_mutex);
 
     // check if swapping is needed
-    if(!(uframe = palloc_get_page(flags))) {
+    if(!(uframe = palloc_get_page(PAL_USER | flags))) {
         /* SWAPPING TO BE IMPLEMENTED... */
         lock_release(&frame_table.frame_mutex);
         return NULL;
