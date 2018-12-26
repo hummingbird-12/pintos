@@ -4,9 +4,9 @@
 #include "userprog/gdt.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
-
-#include "threads/palloc.h"
+#include "threads/synch.h"
 #include "userprog/syscall.h"
+#include "threads/palloc.h"
 #include "threads/vaddr.h"
 #include "userprog/pagedir.h"
 
@@ -166,13 +166,13 @@ page_fault (struct intr_frame *f)
 
   /* yeddo prog4 */
   if( user && not_present && write && fault_addr){
-    void *frame;
-    static void *pg = PHYS_BASE - 2*PGSIZE;
+    void *phy_page;
+    static void *p = PHYS_BASE - 2*PGSIZE;
 
     if(is_user_vaddr(fault_addr) && pg_round_up(fault_addr) >= 0xBF800000){
-      frame = palloc_get_page(PAL_USER|PAL_ZERO);
-      pagedir_set_page(thread_current()->pagedir,pg,frame,1);
-      pg -= PGSIZE;
+      phy_page = palloc_get_page(PAL_USER|PAL_ZERO);
+      pagedir_set_page(thread_current()->pagedir,p,phy_page,1);
+      p -= PGSIZE;
       return;
 
     }
