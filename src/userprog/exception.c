@@ -8,6 +8,9 @@
 #include "userprog/pagedir.h"
 #include "threads/vaddr.h"
 #include "userprog/syscall.h"
+#ifdef VM
+#include "vm/frame.h"
+#endif
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -151,31 +154,33 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
 
+#ifndef VM
   /* Suggested method in Pintos Manual 3.1.5  */
   /* At page fault,
    * set EAX to 0xFFFFFFFF
    * set EIP to EAX's former value */
- //  f->eip = (void*) f->eax;
-//  f->eax = 0xFFFFFFFF;
+  f->eip = (void*) f->eax;
+  f->eax = 0xFFFFFFFF;
 
   /* if page fault caused within user process */
-//  if(user)
-//      fail_exit();
-//
+  if(user)
+    fail_exit();
+
+#else
   /* Page Fault Handler */
 
-  if(fault_addr && is_user_vaddr(fault_addr) && user && not_present && write){
+  if(fault_addr && is_user_vaddr(fault_addr) && user && not_present && write) {
     void *frame;
     static void *pg= PHYS_BASE - 2 * PGSIZE;
 
-    frame = palloc_get_page(PAL_USER|PAL_ZERO);
+    frame = frame_alloc(PAL_USER | PAL_ZERO, pg);
     pagedir_set_page(thread_current()->pagedir, pg, frame,1);
     pg -= PGSIZE;
-
   }
-  else{
+  else {
     fail_exit();
   }
+#endif
   
   /* NOT NEEDED */
   /* To implement virtual memory, delete the rest of the function
