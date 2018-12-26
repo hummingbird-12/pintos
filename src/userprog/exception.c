@@ -130,7 +130,6 @@ page_fault (struct intr_frame *f)
   bool write;        /* True: access was write, false: access was read. */
   bool user;         /* True: access by user, false: access by kernel. */
   void *fault_addr;  /* Fault address. */
-  size_t pn;
   /* Obtain faulting address, the virtual address that was
      accessed to cause the fault.  It may point to code or to
      data.  It is not necessarily the address of the instruction
@@ -163,21 +162,16 @@ page_fault (struct intr_frame *f)
 //  if(user)
 //      fail_exit();
 //
-  /*yeddo pr4*/
-  if( user && not_present && write && fault_addr){
+  /* Page Fault Handler */
+
+  if(fault_addr && is_user_vaddr(fault_addr) && user && not_present && write){
     void *frame;
     static void *pg= PHYS_BASE - 2 * PGSIZE;
 
-    if(is_user_vaddr(fault_addr) && pg_round_up(fault_addr) >= 0xBF800000){
+    frame = palloc_get_page(PAL_USER|PAL_ZERO);
+    pagedir_set_page(thread_current()->pagedir, pg, frame,1);
+    pg -= PGSIZE;
 
-      frame = palloc_get_page(PAL_USER|PAL_ZERO);
-      pagedir_set_page(thread_current()->pagedir, pg, frame,1);
-      pg -= PGSIZE;
-      return;
-    }
-    else{
-      fail_exit();
-    }
   }
   else{
     fail_exit();
