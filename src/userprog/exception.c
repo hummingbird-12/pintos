@@ -131,8 +131,6 @@ page_fault (struct intr_frame *f)
   bool user;         /* True: access by user, false: access by kernel. */
   void *fault_addr;  /* Fault address. */
   size_t pn;
-  void *frame;
-  void *page;
   /* Obtain faulting address, the virtual address that was
      accessed to cause the fault.  It may point to code or to
      data.  It is not necessarily the address of the instruction
@@ -158,7 +156,7 @@ page_fault (struct intr_frame *f)
   /* At page fault,
    * set EAX to 0xFFFFFFFF
    * set EIP to EAX's former value */
-//  f->eip = (void*) f->eax;
+ //  f->eip = (void*) f->eax;
 //  f->eax = 0xFFFFFFFF;
 
   /* if page fault caused within user process */
@@ -167,15 +165,15 @@ page_fault (struct intr_frame *f)
 //
   /*yeddo pr4*/
   if( user && not_present && write && fault_addr){
-    
-    page = PHYS_BASE - 2*PGSIZE;
+    void *frame;
+    static void *pg= PHYS_BASE - 2 * PGSIZE;
 
     if(is_user_vaddr(fault_addr) && pg_round_up(fault_addr) >= 0xBF800000){
 
       frame = palloc_get_page(PAL_USER|PAL_ZERO);
-      pagedir_set_page(thread_current()->pagedir, page, frame,1);
-      page -= PGSIZE;
-    
+      pagedir_set_page(thread_current()->pagedir, pg, frame,1);
+      pg -= PGSIZE;
+      return;
     }
     else{
       fail_exit();
